@@ -4,6 +4,7 @@ import {
   getOperatorCombatSkillFormKeys,
   getOperatorFormName,
   getWeaponGameName,
+  getWeaponSkillDescription,
   getWeaponSkillName,
 } from './gameText';
 
@@ -16,6 +17,19 @@ describe('game text localization', () => {
     expect(getWeaponSkillName('blessing-of-lustrous-carmine', 'skill1', 'zh-CN')).toBe('敏捷');
     expect(getWeaponSkillName('blessing-of-lustrous-carmine', 'skill2', 'zh-CN')).toBe('灼热伤害');
     expect(getWeaponSkillName('blessing-of-lustrous-carmine', 'skill3', 'zh-CN')).toBe('镀红祝福');
+  });
+
+  test('zh keeps arts-unit weapons with swapped icon IDs mapped to the correct skills', () => {
+    expect(getWeaponSkillDescription('detonation-unit', 'skill3', 'zh-CN', 1)).toContain(
+      '法术爆发',
+    );
+    expect(getWeaponSkillDescription('detonation-unit', 'skill3', 'zh-CN', 1)).not.toContain(
+      '治疗',
+    );
+    expect(getWeaponSkillDescription('chivalric-virtues', 'skill3', 'zh-CN', 1)).toContain('治疗');
+    expect(getWeaponSkillDescription('chivalric-virtues', 'skill3', 'zh-CN', 1)).not.toContain(
+      '法术爆发',
+    );
   });
 
   test('zh reads operator form labels separately from form-specific skill descriptions', () => {

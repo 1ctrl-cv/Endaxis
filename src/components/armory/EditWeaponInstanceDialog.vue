@@ -5,11 +5,13 @@ import { getWeapon } from '@/data';
 import {
   getGameWeaponTypeName,
   getWeaponGameName,
+  getWeaponSkillDescription,
   getWeaponSkillName,
   getWeaponUiLabel,
 } from '@/data/gameText';
 import { useWeaponStore } from '@/stores/weaponStore';
 import { getSkillBounds } from '@/utils/weaponBounds';
+import GameRichTextRenderer from '@/components/GameRichTextRenderer.vue';
 
 const LEVELS = [1, 20, 40, 60, 80, 90];
 const ALL_SKILL_KEYS = ['skill1', 'skill2', 'skill3'];
@@ -153,6 +155,12 @@ function getSkillName(skillKey) {
   if (!slug) return t(`armory.weapon.${skillKey}`);
   return getWeaponSkillName(slug, skillKey, locale.value, t(`armory.weapon.${skillKey}`));
 }
+
+function getSkillDescription(skillKey) {
+  const slug = props.instance?.weaponSlug;
+  if (!slug) return '';
+  return getWeaponSkillDescription(slug, skillKey, locale.value, getSkillLevel(skillKey)) || '';
+}
 </script>
 
 <template>
@@ -238,29 +246,37 @@ function getSkillName(skillKey) {
         <div class="section">
           <div class="section-title">{{ t('armory.common.skills') }}</div>
           <div v-for="sk in activeSkillKeys" :key="sk" class="skill-row">
-            <div class="skill-info">
-              <span class="skill-name">{{ getSkillName(sk) }}</span>
-              <span class="skill-value">{{ getSkillValueSuffix(sk) }}</span>
-            </div>
-            <div class="skill-bar-area">
-              <div class="skill-slots">
-                <button
-                  v-for="slot in ABSOLUTE_MAX"
-                  :key="slot"
-                  class="skill-slot"
-                  :class="slotClass(sk, slot)"
-                  :disabled="!slotClickable(sk, slot)"
-                  @click="setSkillLevel(sk, slot)"
-                >
-                  <template v-if="slotClass(sk, slot) === 'slot-locked'">&times;</template>
-                  <template v-else-if="slotClass(sk, slot) === 'slot-empty'">&nbsp;</template>
-                  <template v-else>/</template>
-                </button>
+            <div class="skill-row-main">
+              <div class="skill-info">
+                <span class="skill-name">{{ getSkillName(sk) }}</span>
+                <span class="skill-value">{{ getSkillValueSuffix(sk) }}</span>
               </div>
-              <span class="skill-counter"
-                >{{ getSkillLevel(sk) }}/{{ getSkillBoundsForKey(sk).max }}</span
-              >
+              <div class="skill-bar-area">
+                <div class="skill-slots">
+                  <button
+                    v-for="slot in ABSOLUTE_MAX"
+                    :key="slot"
+                    class="skill-slot"
+                    :class="slotClass(sk, slot)"
+                    :disabled="!slotClickable(sk, slot)"
+                    @click="setSkillLevel(sk, slot)"
+                  >
+                    <template v-if="slotClass(sk, slot) === 'slot-locked'">&times;</template>
+                    <template v-else-if="slotClass(sk, slot) === 'slot-empty'">&nbsp;</template>
+                    <template v-else>/</template>
+                  </button>
+                </div>
+                <span class="skill-counter"
+                  >{{ getSkillLevel(sk) }}/{{ getSkillBoundsForKey(sk).max }}</span
+                >
+              </div>
             </div>
+            <GameRichTextRenderer
+              v-if="getSkillDescription(sk)"
+              class="skill-description"
+              :text="getSkillDescription(sk)"
+              :locale="locale"
+            />
           </div>
         </div>
       </div>
@@ -426,12 +442,19 @@ function getSkillName(skillKey) {
 }
 .skill-row {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 8px;
   padding: 10px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 .skill-row:last-child {
   border-bottom: none;
+}
+.skill-row-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
 }
 .skill-info {
   flex: 1;
@@ -495,6 +518,12 @@ function getSkillName(skillKey) {
   min-width: 28px;
   text-align: right;
   font-family: 'Roboto Mono', monospace;
+}
+.skill-description {
+  display: block;
+  color: #c8c8c8;
+  font-size: 12px;
+  line-height: 1.55;
 }
 .footer {
   display: flex;
