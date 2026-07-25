@@ -65,6 +65,17 @@ export interface SheetStatEffect {
   scaling?: ResolvedScalingDef;
   id?: string;
   external?: boolean;
+  /** Display name for source attribution (talent / set / piece name). */
+  name?: string;
+}
+
+/**
+ * A named contribution to a scalar operator stat (crit, arts intensity, CDR, …).
+ * `value` uses the same units as the parent aggregate (decimal for rates, raw for flat).
+ */
+export interface StatSourceEntry {
+  label: string;
+  value: number;
 }
 
 // ─── Scoped damage modifier ────────────────────────────────────────────────

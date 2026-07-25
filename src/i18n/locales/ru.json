@@ -976,7 +976,10 @@
     "otherHp": "Другое",
     "hpPercent": "ОЗ%",
     "flatHp": "Фикс.",
-    "defense": "Защита"
+    "defense": "Защита",
+    "baseSource": "Base",
+    "noSources": "No extra sources",
+    "comboCdReduction": "Combo Skill CDR"
   },
   "stats": {
     "primary_ability": "Основной показатель",

@@ -120,6 +120,34 @@ export interface DamageModifierSource {
   external?: boolean;
 }
 
+/** ATK subcomponents for expandable source detail (mirrors StatDetailDialog). */
+export interface AtkDetailSnapshot {
+  operator: number;
+  weapon: number;
+  atkPercent: number;
+  flatAtk: number;
+  attrAtkCoeff: { strength: number; agility: number; intellect: number; will: number };
+  attributes: { strength: number; agility: number; intellect: number; will: number };
+  mainAttributeName: string;
+  secondaryAttributeName: string;
+}
+
+export function snapshotAtkDetail(
+  operatorStatus: OperatorStatus,
+  overrides?: { atkPercent?: number; flatAtk?: number },
+): AtkDetailSnapshot {
+  return {
+    operator: operatorStatus.baseAtk.operator,
+    weapon: operatorStatus.baseAtk.weapon,
+    atkPercent: overrides?.atkPercent ?? operatorStatus.atkPercent,
+    flatAtk: overrides?.flatAtk ?? operatorStatus.flatAtk,
+    attrAtkCoeff: { ...operatorStatus.attrAtkCoeff },
+    attributes: { ...operatorStatus.attributes },
+    mainAttributeName: operatorStatus.mainAttributeName,
+    secondaryAttributeName: operatorStatus.secondaryAttributeName,
+  };
+}
+
 /**
  * Filter and accumulate damage modifiers matching element + skillType.
  */
@@ -305,6 +333,7 @@ interface MutableDamageStats {
   resistanceIgnoreSources: DamageModifierSource[];
   susceptibilityAmplify: number;
   susceptibilityAmplifySources: DamageModifierSource[];
+  atkDetail?: AtkDetailSnapshot;
 }
 
 /**
@@ -335,11 +364,10 @@ export function applyConsumedStatEffects(
           coeff.agility * attrs.agility +
           coeff.intellect * attrs.intellect +
           coeff.will * attrs.will;
-        stats.attack = Math.floor(
-          (baseAtkTotal * (1 + operatorStatus.atkPercent + ce.value / 100) +
-            operatorStatus.flatAtk) *
-            attrBonus,
-        );
+        const atkPercent = operatorStatus.atkPercent + ce.value / 100;
+        const flatAtk = stats.atkDetail?.flatAtk ?? operatorStatus.flatAtk;
+        stats.attack = Math.floor((baseAtkTotal * (1 + atkPercent) + flatAtk) * attrBonus);
+        if (stats.atkDetail) stats.atkDetail.atkPercent = atkPercent;
         break;
       }
       case 'atkFlat': {
@@ -352,10 +380,10 @@ export function applyConsumedStatEffects(
           coeff.agility * attrs.agility +
           coeff.intellect * attrs.intellect +
           coeff.will * attrs.will;
-        stats.attack = Math.floor(
-          (baseAtkTotal * (1 + operatorStatus.atkPercent) + operatorStatus.flatAtk + ce.value) *
-            attrBonus,
-        );
+        const atkPercent = stats.atkDetail?.atkPercent ?? operatorStatus.atkPercent;
+        const flatAtk = operatorStatus.flatAtk + ce.value;
+        stats.attack = Math.floor((baseAtkTotal * (1 + atkPercent) + flatAtk) * attrBonus);
+        if (stats.atkDetail) stats.atkDetail.flatAtk = flatAtk;
         break;
       }
       case 'critRate':
@@ -433,12 +461,15 @@ interface HitDamageParams {
   linkStacks: number;
   staggerMult: number; // 1.3 when enemy is staggered, 1 otherwise
   finisherMult: number; // tier-based multiplier for finisher actions against staggered enemies
+  atkDetail?: AtkDetailSnapshot;
 }
 
 // ─── Damage breakdown (for detail dialog) ──────────────────────────────────
 
 export interface DamageBreakdown {
   attack: number;
+  /** Present when the hit was computed with full operator ATK components. */
+  atkDetail?: AtkDetailSnapshot;
   multiplier: number;
   skillType?: string;
   element?: string;
@@ -526,6 +557,7 @@ export function computeExpectedDamageWithBreakdown(
 
   return {
     attack: p.attack,
+    atkDetail: p.atkDetail,
     multiplier: p.multiplier,
     skillType: p.skillType,
     element,
@@ -611,6 +643,7 @@ export function computeHitDamageWithBreakdown(
     ampBonusSources: [...mods.ampBonusSources],
     resistanceIgnoreSources: [...mods.resistanceIgnoreSources],
     susceptibilityAmplifySources: [...mods.susceptibilityAmplifySources],
+    atkDetail: snapshotAtkDetail(operatorStatus),
   };
 
   applyConsumedStatEffects(stats, hit.consumedStatEffects, operatorStatus);
@@ -659,6 +692,7 @@ export function computeHitDamageWithBreakdown(
       linkStacks: hit.consumedStacks?.link ?? 0,
       staggerMult,
       finisherMult,
+      atkDetail: stats.atkDetail,
     },
     element,
   );

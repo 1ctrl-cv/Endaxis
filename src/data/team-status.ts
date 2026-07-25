@@ -67,6 +67,7 @@ function toSheetEffect(ce: CollectedEffect & { effect: StatusEffect }): SheetSta
     scaling: resolved.scaling,
     id: resolved.id,
     external: resolved.external,
+    name: resolved.name,
   };
 }
 

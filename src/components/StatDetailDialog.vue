@@ -1,6 +1,8 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { STAT_SOURCE_BASE_LABEL } from '@/data/stats/computeStats';
+import { resolveDamageBonusSourceLabel } from '@/utils/damageBonusSourceLabel';
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -10,10 +12,15 @@ const props = defineProps({
 
 const emit = defineEmits(['update:visible']);
 
-const { t } = useI18n();
+const { t, te, locale } = useI18n();
 
 const atkOpen = ref(false);
 const hpOpen = ref(false);
+const critRateOpen = ref(false);
+const critDmgOpen = ref(false);
+const artsOpen = ref(false);
+const ultEffOpen = ref(false);
+const comboCdOpen = ref(false);
 
 const ATTR_KEYS = ['strength', 'agility', 'intellect', 'will'];
 
@@ -31,6 +38,12 @@ function num(value) {
 
 function attrKey(value) {
   return String(value || '').toLowerCase();
+}
+
+function resolveSourceLabel(raw) {
+  const label = String(raw || '').trim();
+  if (!label || label === STAT_SOURCE_BASE_LABEL) return t('statDetail.baseSource');
+  return resolveDamageBonusSourceLabel(label, t, te, locale.value) || label;
 }
 
 const baseAtkTotal = computed(() => {
@@ -79,9 +92,29 @@ const baseHpTotal = computed(() => {
   return (Number(status.baseHp) || 0) + (Number(status.attributes?.strength) || 0) * 5;
 });
 
+/** Displayed combo CDR as (1 − Π(1 − pct/100)) × 100%. */
+const comboCdReductionDisplay = computed(() => {
+  const mult = Number(props.operatorStatus?.comboCdExternalMult);
+  const factor = Number.isFinite(mult) && mult > 0 ? mult : 1;
+  return (1 - factor) * 100;
+});
+
+const comboCdPercentSources = computed(
+  () => props.operatorStatus?.comboCdReductionPercentSources ?? [],
+);
+const comboCdFlatSources = computed(() => props.operatorStatus?.comboCdReductionFlatSources ?? []);
+const hasComboCdSources = computed(
+  () => comboCdPercentSources.value.length > 0 || comboCdFlatSources.value.length > 0,
+);
+
 function onClose() {
   atkOpen.value = false;
   hpOpen.value = false;
+  critRateOpen.value = false;
+  critDmgOpen.value = false;
+  artsOpen.value = false;
+  ultEffOpen.value = false;
+  comboCdOpen.value = false;
   emit('update:visible', false);
 }
 </script>
@@ -238,24 +271,139 @@ function onClose() {
             <td class="label-cell bold">{{ t('statDetail.defense') }}</td>
             <td class="value-cell bold">{{ num(operatorStatus.defense) }}</td>
           </tr>
-          <tr>
-            <td class="label-cell">{{ t('stats.crit_rate') }}</td>
+
+          <tr class="expandable-row" @click="critRateOpen = !critRateOpen">
+            <td class="label-cell">
+              {{ t('stats.crit_rate') }}
+              <span class="expand-icon">{{ critRateOpen ? 'v' : '>' }}</span>
+            </td>
             <td class="value-cell">{{ pct(operatorStatus.critRate) }}</td>
           </tr>
-          <tr>
-            <td class="label-cell">{{ t('stats.crit_dmg') }}</td>
+          <template v-if="critRateOpen">
+            <tr
+              v-for="(src, idx) in operatorStatus.critRateSources || []"
+              :key="`crit-rate-${idx}`"
+              class="sub-row dim"
+            >
+              <td class="label-cell indent-1">
+                {{ t('statDetail.fromSource', { name: resolveSourceLabel(src.label) }) }}
+              </td>
+              <td class="value-cell">{{ pct(src.value) }}</td>
+            </tr>
+          </template>
+
+          <tr class="expandable-row" @click="critDmgOpen = !critDmgOpen">
+            <td class="label-cell">
+              {{ t('stats.crit_dmg') }}
+              <span class="expand-icon">{{ critDmgOpen ? 'v' : '>' }}</span>
+            </td>
             <td class="value-cell">{{ pct(operatorStatus.critDmg) }}</td>
           </tr>
-          <tr>
-            <td class="label-cell">{{ t('stats.originium_arts_power') }}</td>
+          <template v-if="critDmgOpen">
+            <tr
+              v-for="(src, idx) in operatorStatus.critDmgSources || []"
+              :key="`crit-dmg-${idx}`"
+              class="sub-row dim"
+            >
+              <td class="label-cell indent-1">
+                {{ t('statDetail.fromSource', { name: resolveSourceLabel(src.label) }) }}
+              </td>
+              <td class="value-cell">{{ pct(src.value) }}</td>
+            </tr>
+          </template>
+
+          <tr class="expandable-row" @click="artsOpen = !artsOpen">
+            <td class="label-cell">
+              {{ t('stats.originium_arts_power') }}
+              <span class="expand-icon">{{ artsOpen ? 'v' : '>' }}</span>
+            </td>
             <td class="value-cell">{{ num(operatorStatus.artsIntensity) }}</td>
           </tr>
-          <tr>
-            <td class="label-cell">{{ t('stats.ult_charge_eff') }}</td>
+          <template v-if="artsOpen">
+            <tr
+              v-for="(src, idx) in operatorStatus.artsIntensitySources || []"
+              :key="`arts-${idx}`"
+              class="sub-row dim"
+            >
+              <td class="label-cell indent-1">
+                {{ t('statDetail.fromSource', { name: resolveSourceLabel(src.label) }) }}
+              </td>
+              <td class="value-cell">+{{ Number(src.value).toFixed(1) }}</td>
+            </tr>
+            <tr
+              v-if="!(operatorStatus.artsIntensitySources || []).length"
+              class="sub-row dim"
+            >
+              <td class="label-cell indent-1">{{ t('statDetail.noSources') }}</td>
+              <td class="value-cell">—</td>
+            </tr>
+          </template>
+
+          <tr class="expandable-row" @click="ultEffOpen = !ultEffOpen">
+            <td class="label-cell">
+              {{ t('stats.ult_charge_eff') }}
+              <span class="expand-icon">{{ ultEffOpen ? 'v' : '>' }}</span>
+            </td>
             <td class="value-cell">
               {{ pct(1 + (Number(operatorStatus.ultimateGainEfficiency) || 0) / 100) }}
             </td>
           </tr>
+          <template v-if="ultEffOpen">
+            <tr
+              v-for="(src, idx) in operatorStatus.ultimateGainEfficiencySources || []"
+              :key="`ult-eff-${idx}`"
+              class="sub-row dim"
+            >
+              <td class="label-cell indent-1">
+                {{ t('statDetail.fromSource', { name: resolveSourceLabel(src.label) }) }}
+              </td>
+              <td class="value-cell">+{{ Number(src.value).toFixed(1) }}%</td>
+            </tr>
+            <tr
+              v-if="!(operatorStatus.ultimateGainEfficiencySources || []).length"
+              class="sub-row dim"
+            >
+              <td class="label-cell indent-1">{{ t('statDetail.noSources') }}</td>
+              <td class="value-cell">—</td>
+            </tr>
+          </template>
+
+          <tr
+            class="expandable-row"
+            :class="{ 'is-disabled': !hasComboCdSources && comboCdReductionDisplay === 0 }"
+            @click="hasComboCdSources || comboCdReductionDisplay !== 0 ? (comboCdOpen = !comboCdOpen) : null"
+          >
+            <td class="label-cell">
+              {{ t('statDetail.comboCdReduction') }}
+              <span
+                v-if="hasComboCdSources || comboCdReductionDisplay !== 0"
+                class="expand-icon"
+              >{{ comboCdOpen ? 'v' : '>' }}</span>
+            </td>
+            <td class="value-cell">{{ comboCdReductionDisplay.toFixed(1) }}%</td>
+          </tr>
+          <template v-if="comboCdOpen">
+            <tr
+              v-for="(src, idx) in comboCdPercentSources"
+              :key="`combo-cd-pct-${idx}`"
+              class="sub-row dim"
+            >
+              <td class="label-cell indent-1">
+                {{ t('statDetail.fromSource', { name: resolveSourceLabel(src.label) }) }}
+              </td>
+              <td class="value-cell">{{ Number(src.value).toFixed(1) }}%</td>
+            </tr>
+            <tr
+              v-for="(src, idx) in comboCdFlatSources"
+              :key="`combo-cd-flat-${idx}`"
+              class="sub-row dim"
+            >
+              <td class="label-cell indent-1">
+                {{ t('statDetail.fromSource', { name: resolveSourceLabel(src.label) }) }}
+              </td>
+              <td class="value-cell">−{{ Number(src.value).toFixed(1) }}s</td>
+            </tr>
+          </template>
         </tbody>
       </table>
     </div>
@@ -335,6 +483,14 @@ function onClose() {
 
 .expandable-row:hover {
   background: rgba(255, 255, 255, 0.05);
+}
+
+.expandable-row.is-disabled {
+  cursor: default;
+}
+
+.expandable-row.is-disabled:hover {
+  background: transparent;
 }
 
 .expand-icon {

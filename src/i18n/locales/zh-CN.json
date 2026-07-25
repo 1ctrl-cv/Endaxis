@@ -1093,7 +1093,10 @@
     "otherHp": "其他",
     "hpPercent": "生命%",
     "flatHp": "固定生命",
-    "defense": "防御"
+    "defense": "防御",
+    "baseSource": "基础",
+    "noSources": "无额外来源",
+    "comboCdReduction": "连携技冷却缩减"
   },
   "stats": {
     "primary_ability": "主能力",

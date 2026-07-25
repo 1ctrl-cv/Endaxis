@@ -1093,7 +1093,10 @@
     "otherHp": "Other",
     "hpPercent": "HP%",
     "flatHp": "Flat",
-    "defense": "Defense"
+    "defense": "Defense",
+    "baseSource": "Base",
+    "noSources": "No extra sources",
+    "comboCdReduction": "Combo Skill CDR"
   },
   "stats": {
     "primary_ability": "Main Attribute",

@@ -20,6 +20,7 @@ import {
   filterDamageModifiers,
   applyConsumedStatEffects,
   collectEnemyHitModifierSources,
+  snapshotAtkDetail,
   STAGGER_DAMAGE_MULTIPLIER,
 } from '@/data/stats/computeDamage';
 import type { ResolvedStatModifier } from '@/data/stats/types';
@@ -341,6 +342,7 @@ export class HitHandler implements EventHandler<HitEvent> {
         staggerMult,
         finisherMult,
         susceptibilityAmplify: mods.susceptibilityAmplify,
+        atkDetail: snapshotAtkDetail(operatorStatus),
       };
       applyConsumedStatEffects(reactionHitParams, hit.consumedStatEffects, operatorStatus);
       const breakdown = computeReactionHitDamageWithBreakdown({

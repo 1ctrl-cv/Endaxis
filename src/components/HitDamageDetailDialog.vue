@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { getGameElementName } from '@/data/gameText';
 import { translateEffectName } from '@/editor/hits/statusOptions';
@@ -17,9 +17,22 @@ const emit = defineEmits(['update:visible']);
 const { t, te, locale } = useI18n();
 const store = useTimelineStore();
 
+const atkOpen = ref(false);
+
+const ATTR_KEYS = ['strength', 'agility', 'intellect', 'will'];
+
 const pct = value => `${((Number(value) || 0) * 100).toFixed(1)}%`;
 const mult = value => `x${(Number(value) || 0).toFixed(3)}`;
 const num = value => Math.floor(Number(value) || 0).toLocaleString();
+const ceilNum = value => `${Math.ceil(Number(value) || 0)}`;
+
+function attrKey(value) {
+  return String(value || '').toLowerCase();
+}
+
+function attrLabel(key) {
+  return t(`stats.${key}`);
+}
 
 /** enemyResistance - resistanceIgnore - resistanceShred; omit zero subtrahends. */
 function formatResistanceDetail(breakdown) {
@@ -59,6 +72,48 @@ function skillTypeLabel(value) {
 function reactionLabel(value) {
   return translateEffectName(t, te, value);
 }
+
+const atkDetail = computed(() => props.breakdown?.atkDetail ?? null);
+
+const baseAtkTotal = computed(() => {
+  const detail = atkDetail.value;
+  if (!detail) return 0;
+  return (Number(detail.operator) || 0) + (Number(detail.weapon) || 0);
+});
+
+const basicTotal = computed(() => {
+  const detail = atkDetail.value;
+  if (!detail) return 0;
+  return (
+    baseAtkTotal.value * (1 + (Number(detail.atkPercent) || 0)) + (Number(detail.flatAtk) || 0)
+  );
+});
+
+const attrContribs = computed(() => {
+  const detail = atkDetail.value;
+  if (!detail) return [];
+  const mainKey = attrKey(detail.mainAttributeName);
+  const subKey = attrKey(detail.secondaryAttributeName);
+
+  return ATTR_KEYS.map(key => {
+    const coeff = Number(detail.attrAtkCoeff?.[key]) || 0;
+    const value = Number(detail.attributes?.[key]) || 0;
+    return {
+      key,
+      name: attrLabel(key),
+      coeff,
+      value,
+      contrib: coeff * value,
+      isMain: key === mainKey,
+      isSub: key === subKey,
+    };
+  })
+    .filter(row => row.coeff !== 0)
+    .sort((a, b) => {
+      const rank = row => (row.isMain ? 0 : row.isSub ? 1 : 2);
+      return rank(a) - rank(b);
+    });
+});
 
 const canForceCrit = computed(
   () =>
@@ -276,6 +331,7 @@ const multiplierRows = computed(() => {
 });
 
 function onClose() {
+  atkOpen.value = false;
   emit('update:visible', false);
 }
 </script>
@@ -330,10 +386,71 @@ function onClose() {
       <div class="section-label">{{ t('hitDetail.base') }}</div>
       <table class="stat-table">
         <tbody>
-          <tr>
-            <td class="label-cell">{{ t('hitDetail.attack') }}</td>
+          <tr
+            class="expandable-row"
+            :class="{ 'is-disabled': !atkDetail }"
+            @click="atkDetail ? (atkOpen = !atkOpen) : null"
+          >
+            <td class="label-cell">
+              {{ t('hitDetail.attack') }}
+              <span v-if="atkDetail" class="expand-icon">{{ atkOpen ? 'v' : '>' }}</span>
+            </td>
             <td class="value-cell">{{ num(breakdown.attack) }}</td>
           </tr>
+          <template v-if="atkOpen && atkDetail">
+            <tr class="sub-row">
+              <td class="label-cell indent-1">{{ t('statDetail.basicTotal') }}</td>
+              <td class="value-cell">{{ ceilNum(basicTotal) }}</td>
+            </tr>
+            <tr class="sub-row">
+              <td class="label-cell indent-2">{{ t('statDetail.baseAtk') }}</td>
+              <td class="value-cell">{{ ceilNum(baseAtkTotal) }}</td>
+            </tr>
+            <tr class="sub-row dim">
+              <td class="label-cell indent-3">{{ t('statDetail.operatorAtk') }}</td>
+              <td class="value-cell">{{ ceilNum(atkDetail.operator) }}</td>
+            </tr>
+            <tr class="sub-row dim">
+              <td class="label-cell indent-3">{{ t('statDetail.weaponAtk') }}</td>
+              <td class="value-cell">{{ ceilNum(atkDetail.weapon) }}</td>
+            </tr>
+            <tr class="sub-row">
+              <td class="label-cell indent-2">{{ t('statDetail.atkBonus') }}</td>
+              <td class="value-cell">
+                +{{
+                  ceilNum(
+                    baseAtkTotal * (Number(atkDetail.atkPercent) || 0) +
+                      (Number(atkDetail.flatAtk) || 0),
+                  )
+                }}
+              </td>
+            </tr>
+            <tr class="sub-row dim">
+              <td class="label-cell indent-3">{{ t('statDetail.flatAtk') }}</td>
+              <td class="value-cell">+{{ ceilNum(atkDetail.flatAtk) }}</td>
+            </tr>
+            <tr class="sub-row dim">
+              <td class="label-cell indent-3">{{ t('statDetail.percentageAtk') }}</td>
+              <td class="value-cell">{{ pct(atkDetail.atkPercent) }}</td>
+            </tr>
+            <tr class="sub-row">
+              <td class="label-cell indent-1">{{ t('statDetail.attributeBonus') }}</td>
+              <td class="value-cell">
+                +{{ (attrContribs.reduce((sum, row) => sum + row.contrib, 0) * 100).toFixed(1) }}%
+              </td>
+            </tr>
+            <tr
+              v-for="row in attrContribs"
+              :key="row.key"
+              class="sub-row dim"
+              :class="{ 'is-main': row.isMain, 'is-sub': row.isSub }"
+            >
+              <td class="label-cell indent-2">
+                {{ t('statDetail.fromSource', { name: row.name }) }}
+              </td>
+              <td class="value-cell">+{{ (row.contrib * 100).toFixed(1) }}%</td>
+            </tr>
+          </template>
           <tr>
             <td class="label-cell">{{ t('hitDetail.multiplier') }}</td>
             <td class="value-cell">{{ displayMultiplier.toFixed(1) }}%</td>
@@ -428,6 +545,41 @@ function onClose() {
 .dim {
   opacity: 0.65;
   font-size: 12px;
+}
+.indent-1 {
+  padding-left: 16px !important;
+}
+.indent-2 {
+  padding-left: 28px !important;
+}
+.indent-3 {
+  padding-left: 40px !important;
+}
+.expandable-row {
+  cursor: pointer;
+}
+.expandable-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.expandable-row.is-disabled {
+  cursor: default;
+}
+.expandable-row.is-disabled:hover {
+  background: transparent;
+}
+.expand-icon {
+  font-size: 11px;
+  margin-left: 4px;
+  color: #888;
+}
+.sub-row {
+  border-bottom-color: rgba(255, 255, 255, 0.03) !important;
+}
+tr.is-main {
+  background: rgba(255, 193, 7, 0.08);
+}
+tr.is-sub {
+  background: rgba(158, 158, 158, 0.08);
 }
 .damage-result {
   margin-bottom: 4px;

@@ -5,9 +5,23 @@ import type {
   SheetStatEffect,
   ResolvedStatModifier,
   ScopedDamageModifier,
+  StatSourceEntry,
 } from './types';
 import { ATTR_MAP } from './baseValues';
 import { computeScalingBasis } from './scaling';
+
+/** Intrinsic baseline label — StatDetailDialog translates via statDetail.baseSource. */
+export const STAT_SOURCE_BASE_LABEL = '__base__';
+
+function pushStatSource(
+  list: StatSourceEntry[],
+  label: string | undefined,
+  value: number,
+): void {
+  if (!Number.isFinite(value) || value === 0) return;
+  const name = typeof label === 'string' && label.trim() ? label.trim() : STAT_SOURCE_BASE_LABEL;
+  list.push({ label: name, value });
+}
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -189,8 +203,16 @@ export function computeStats(
   let comboCdExternalMult = 1;
   let ultCdExternalMult = 1;
   const damageModifiers: ScopedDamageModifier[] = [];
+  const critRateSources: StatSourceEntry[] = [];
+  const critDmgSources: StatSourceEntry[] = [];
+  const artsIntensitySources: StatSourceEntry[] = [];
+  const ultimateGainEfficiencySources: StatSourceEntry[] = [];
+  const comboCdReductionPercentSources: StatSourceEntry[] = [];
+  const comboCdReductionFlatSources: StatSourceEntry[] = [];
 
-  // Helper: check skill-scoped filtering.
+  // Intrinsic baselines (shown as "基础" in the attribute panel).
+  pushStatSource(critRateSources, STAT_SOURCE_BASE_LABEL, 0.05);
+  pushStatSource(critDmgSources, STAT_SOURCE_BASE_LABEL, 0.5);
   // `stat.skillTypes` matches the action's TYPE (generic group — sub-variants share it).
   // `stat.skillId` matches the specific skillId (targets a particular variant).
   const passesSkillScope = (stat: Record<string, unknown>): boolean => {
@@ -236,7 +258,7 @@ export function computeStats(
     }
 
     const val = (effect.id ? resolvedValues.get(effect.id) : undefined) ?? getEffectValue(effect);
-    accumulateStat(modifier, val, effect.stat, effect.id, effect.external);
+    accumulateStat(modifier, val, effect.stat, effect.id, effect.external, effect.name);
   }
 
   // Accumulate dynamic modifiers
@@ -296,15 +318,19 @@ export function computeStats(
         break;
       case 'critRate':
         critRate += pct;
+        pushStatSource(critRateSources, sourceLabel, pct);
         break;
       case 'critDmg':
         critDmg += pct;
+        pushStatSource(critDmgSources, sourceLabel, pct);
         break;
       case 'artsIntensity':
         artsIntensity += val;
+        pushStatSource(artsIntensitySources, sourceLabel, val);
         break;
       case 'ultimateGainEfficiency':
         ultimateGainEfficiency += val;
+        pushStatSource(ultimateGainEfficiencySources, sourceLabel, val);
         break;
       case 'spRecoveryFlat':
         spRecoveryFlat += val;
@@ -380,7 +406,10 @@ export function computeStats(
             ? skillTypes
             : [skillTypes as string]
           : [];
-        if (arr.length === 0 || arr.includes('comboSkill')) comboCdReductionFlat += val;
+        if (arr.length === 0 || arr.includes('comboSkill')) {
+          comboCdReductionFlat += val;
+          pushStatSource(comboCdReductionFlatSources, sourceLabel, val);
+        }
         if (arr.length === 0 || arr.includes('ultimate')) ultCdReductionFlat += val;
         break;
       }
@@ -395,7 +424,11 @@ export function computeStats(
         const ult = arr.length === 0 || arr.includes('ultimate');
         // Always Π(1 - pct/100); never additive.
         const f = Math.max(0, 1 - val / 100);
-        if (combo) comboCdExternalMult *= f;
+        if (combo) {
+          comboCdExternalMult *= f;
+          // Store percent-points (50 = 50%) for display.
+          pushStatSource(comboCdReductionPercentSources, sourceLabel, val);
+        }
         if (ult) ultCdExternalMult *= f;
         break;
       }
@@ -463,6 +496,12 @@ export function computeStats(
     ultCdReductionPercent,
     comboCdExternalMult,
     ultCdExternalMult,
+    critRateSources,
+    critDmgSources,
+    artsIntensitySources,
+    ultimateGainEfficiencySources,
+    comboCdReductionPercentSources,
+    comboCdReductionFlatSources,
     damageModifiers,
   };
 }

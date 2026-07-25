@@ -1,4 +1,7 @@
 import type { ScopedDamageModifier } from './data/stats/types';
+import type { StatSourceEntry } from './data/stats/types';
+
+export type { StatSourceEntry };
 
 // ─── Operators ───────────────────────────────────────────────────────────────
 
@@ -148,6 +151,15 @@ export interface OperatorStatus {
   comboCdExternalMult: number;
   /** Ultimate cooldown factor Π(1 − pct/100) from `cooldownReductionPercent`; 1 = none. */
   ultCdExternalMult: number;
+
+  /** Named contributions for expandable source details in the attribute panel. */
+  critRateSources: StatSourceEntry[];
+  critDmgSources: StatSourceEntry[];
+  artsIntensitySources: StatSourceEntry[];
+  ultimateGainEfficiencySources: StatSourceEntry[];
+  /** Percent-point contributions (e.g. 50 = 50% CDR factor). */
+  comboCdReductionPercentSources: StatSourceEntry[];
+  comboCdReductionFlatSources: StatSourceEntry[];
 
   // Damage modifiers (scoped by element/skill — filtered by damage calculator at hit time)
   damageModifiers: ScopedDamageModifier[];
