@@ -38,34 +38,38 @@ function resolveEffectiveCooldown(
   }
 
   const stats = track.stats || ({} as ActorStats);
-  let reductionPercent = 0;
   let reductionFlat = 0;
   let externalMult = 1;
 
   if (isComboSkillLikeAction(action)) {
-    reductionPercent = Math.max(
-      clampPercent((stats as any).combo_cd_reduction),
-      clampPercent(stats.link_cd_reduction),
-      clampPercent(track.linkCdReduction),
-      clampPercent(systemConstants?.linkCdReduction),
-    );
     reductionFlat = Math.max(0, Number((stats as any).combo_cd_reduction_flat) || 0);
-    externalMult = Math.max(0, Number((stats as any).combo_cd_external_mult ?? 1) || 1);
+    // Percent CDR is only multiplicative (combo_cd_external_mult = Π(1 - pct/100)).
+    // Legacy single-percent fields, if ever set, also multiply rather than add.
+    let mult = Math.max(0, Number((stats as any).combo_cd_external_mult ?? 1) || 1);
+    for (const raw of [
+      (stats as any).combo_cd_reduction,
+      stats.link_cd_reduction,
+      track.linkCdReduction,
+      systemConstants?.linkCdReduction,
+    ]) {
+      const p = clampPercent(raw);
+      if (p > 0) mult *= 1 - p / 100;
+    }
+    externalMult = Math.max(0, mult);
   } else if (isUltimateLikeAction(action)) {
-    reductionPercent = clampPercent((stats as any).ult_cd_reduction);
     reductionFlat = Math.max(0, Number((stats as any).ult_cd_reduction_flat) || 0);
-    externalMult = Math.max(0, Number((stats as any).ult_cd_external_mult ?? 1) || 1);
+    let mult = Math.max(0, Number((stats as any).ult_cd_external_mult ?? 1) || 1);
+    const p = clampPercent((stats as any).ult_cd_reduction);
+    if (p > 0) mult *= 1 - p / 100;
+    externalMult = Math.max(0, mult);
   }
 
-  const cooldown = Math.max(
-    0,
-    (baseCooldown - reductionFlat) * (1 - reductionPercent / 100) * externalMult,
-  );
+  const cooldown = Math.max(0, (baseCooldown - reductionFlat) * externalMult);
 
   return {
     baseCooldown,
     cooldown,
-    cooldownReductionPercent: reductionPercent,
+    cooldownReductionPercent: 0,
     cooldownReductionFlat: reductionFlat,
   };
 }

@@ -413,7 +413,7 @@ export interface StatusEffect extends EffectBase {
    * When true on an attribute modifier (`attributePercent`), the value is applied as an
    * independent final multiplier on the attribute instead of being summed into the additive
    * percent pool — i.e. `attr × (1 + Σpct) × (1 + value/100)` rather than `(1 + Σpct + value/100)`.
-   * Also routes `dmgBonus`/`increasedDmgTaken`/`cooldownReductionPercent` to standalone multiplicative factors.
+   * Also routes `dmgBonus`/`increasedDmgTaken` to standalone multiplicative factors.
    */
   external?: boolean;
 }

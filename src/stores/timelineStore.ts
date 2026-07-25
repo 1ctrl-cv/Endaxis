@@ -103,6 +103,7 @@ import {
   clampEquipmentRefineTier,
   createDefaultTracks,
   normalizeTracks,
+  EQUIPMENT_REFINE_MAX_TIER,
 } from '@/stores/timeline/normalizers';
 import { useTimelineLayouts } from '@/stores/timeline/layouts';
 import { useTimelineSimulation } from '@/stores/timeline/simulation';
@@ -2163,11 +2164,13 @@ export const useTimelineStore = defineStore('timeline', () => {
   ): Omit<GearInstance, 'id'> {
     const resolvedGearPieceId = resolveGearPieceSlug(gearPieceId) || gearPieceId;
     const piece = getGearPiece(resolvedGearPieceId);
+    const existingTier = clampEquipmentRefineTier(Number(track?.[slotConfig.tierKey]));
     return {
       gearPieceId: resolvedGearPieceId,
       artificingLevels:
         piece && isEquipmentArtificable(piece.levelRequirement)
-          ? createGearArtificingLevels(Number(track?.[slotConfig.tierKey]))
+          ? // New picks default to max refine (3); keep a non-zero tier if the slot already had one.
+            createGearArtificingLevels(existingTier > 0 ? existingTier : EQUIPMENT_REFINE_MAX_TIER)
           : [],
     };
   }

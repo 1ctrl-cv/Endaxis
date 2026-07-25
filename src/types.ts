@@ -140,13 +140,13 @@ export interface OperatorStatus {
   comboCdReductionFlat: number;
   /** Flat seconds removed from ultimate cooldown. */
   ultCdReductionFlat: number;
-  /** Percent (0–100) removed from comboSkill cooldown. */
+  /** Unused for percent CDR (always 0); percent sources use comboCdExternalMult. */
   comboCdReductionPercent: number;
-  /** Percent (0–100) removed from ultimate cooldown. */
+  /** Unused for percent CDR (always 0); percent sources use ultCdExternalMult. */
   ultCdReductionPercent: number;
-  /** Standalone multiplicative comboSkill cooldown factor (Π of external `cooldownReductionPercent`); 1 = none. */
+  /** Combo skill cooldown factor Π(1 − pct/100) from `cooldownReductionPercent`; 1 = none. */
   comboCdExternalMult: number;
-  /** Standalone multiplicative ultimate cooldown factor (Π of external `cooldownReductionPercent`); 1 = none. */
+  /** Ultimate cooldown factor Π(1 − pct/100) from `cooldownReductionPercent`; 1 = none. */
   ultCdExternalMult: number;
 
   // Damage modifiers (scoped by element/skill — filtered by damage calculator at hit time)

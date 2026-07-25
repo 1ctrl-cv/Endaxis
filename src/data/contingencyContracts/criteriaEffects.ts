@@ -358,7 +358,6 @@ export const CRITERION_MECHANISMS: Record<number, CriterionMechanism> = {
         stat: { modifier: 'cooldownReductionPercent', skillTypes: 'comboSkill' },
         target: 'team',
         value: 60,
-        external: true,
       },
       {
         kind: 'status',

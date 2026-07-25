@@ -20,6 +20,7 @@ import { snapMs } from '@/utils/precision';
 import { frameToTime, snapTimeToFrame, timeToFrame } from '@/utils/time';
 import { toLegacyDisplayType } from '@/utils/hitModel';
 import { EQUIPMENT_LEVELS, getEquipmentLevelColor } from '@/utils/equipmentLevels';
+import { EQUIPMENT_REFINE_MAX_TIER } from '@/stores/timeline/normalizers';
 import { mergeEquipmentElementPairEffects } from '@/utils/equipmentEffectDisplay';
 import { getTrackOperatorFormName } from '@/utils/operatorFormDisplay';
 import { hasAnyTimelineGridDialogState } from '@/utils/shortcutScope';
@@ -1098,7 +1099,12 @@ function openEquipmentSelector(index, slotKey) {
   equipmentCategoryFilter.value = 'ALL';
   equipmentAffixFilter.value = 'ALL';
   equipmentLevelFilter.value = 'ALL';
-  equipmentPendingRefineTier.value = getEquipmentTierForTrack(store.tracks[index], slotKey);
+  // Empty slots default to max refine (3); keep the current tier when swapping/editing.
+  const track = store.tracks[index];
+  const currentTier = getEquipmentTierForTrack(track, slotKey);
+  equipmentPendingRefineTier.value = getEquipmentForTrack(track, slotKey)
+    ? currentTier
+    : EQUIPMENT_REFINE_MAX_TIER;
   isEquipmentSelectorVisible.value = true;
 }
 

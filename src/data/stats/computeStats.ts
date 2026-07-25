@@ -393,14 +393,10 @@ export function computeStats(
           : [];
         const combo = arr.length === 0 || arr.includes('comboSkill');
         const ult = arr.length === 0 || arr.includes('ultimate');
-        if (external) {
-          const f = Math.max(0, 1 - val / 100);
-          if (combo) comboCdExternalMult *= f;
-          if (ult) ultCdExternalMult *= f;
-        } else {
-          if (combo) comboCdReductionPercent += val;
-          if (ult) ultCdReductionPercent += val;
-        }
+        // Always Π(1 - pct/100); never additive.
+        const f = Math.max(0, 1 - val / 100);
+        if (combo) comboCdExternalMult *= f;
+        if (ult) ultCdExternalMult *= f;
         break;
       }
 

@@ -381,13 +381,12 @@ describe('Poor Basics (group 1008) mechanism data', () => {
 
 // ─── 环境：过速 (Overclock) — group 1000 ───────────────────────────────────────
 
-describe('external cooldownReductionPercent (standalone multiplicative)', () => {
-  it('routes an external comboSkill CD reduction into the multiplicative bucket, not the additive one', () => {
+describe('cooldownReductionPercent (multiplicative)', () => {
+  it('routes comboSkill CD reduction into the multiplicative factor', () => {
     const sheet: SheetStatEffect[] = [
       {
         stat: { modifier: 'cooldownReductionPercent', skillTypes: 'comboSkill' },
         value: 60,
-        external: true,
       },
     ];
     const combo = computeStats(makeBase(), sheet, [], 'comboSkill');
@@ -398,31 +397,15 @@ describe('external cooldownReductionPercent (standalone multiplicative)', () => 
     expect(ult.ultCdReductionPercent).toBe(0);
   });
 
-  it('stacks multiple external CD reductions multiplicatively', () => {
+  it('stacks multiple CD reductions multiplicatively (50 × 50 × 15)', () => {
     const sheet: SheetStatEffect[] = [
-      {
-        stat: { modifier: 'cooldownReductionPercent', skillTypes: 'comboSkill' },
-        value: 60,
-        external: true,
-      },
-      {
-        stat: { modifier: 'cooldownReductionPercent', skillTypes: 'comboSkill' },
-        value: 50,
-        external: true,
-      },
+      { stat: { modifier: 'cooldownReductionPercent', skillTypes: 'comboSkill' }, value: 50 },
+      { stat: { modifier: 'cooldownReductionPercent', skillTypes: 'comboSkill' }, value: 50 },
+      { stat: { modifier: 'cooldownReductionPercent', skillTypes: 'comboSkill' }, value: 15 },
     ];
     const combo = computeStats(makeBase(), sheet, [], 'comboSkill');
-    expect(combo.comboCdExternalMult).toBeCloseTo(0.2, 10);
+    expect(combo.comboCdExternalMult).toBeCloseTo(0.2125, 10);
     expect(combo.comboCdReductionPercent).toBe(0);
-  });
-
-  it('without external, the same value pools additively (regression)', () => {
-    const sheet: SheetStatEffect[] = [
-      { stat: { modifier: 'cooldownReductionPercent', skillTypes: 'comboSkill' }, value: 60 },
-    ];
-    const combo = computeStats(makeBase(), sheet, [], 'comboSkill');
-    expect(combo.comboCdReductionPercent).toBe(60);
-    expect(combo.comboCdExternalMult).toBe(1);
   });
 });
 
@@ -436,7 +419,6 @@ describe('Overclock (group 1000) mechanism data', () => {
     ) as any;
     expect(cd.target).toBe('team');
     expect(cd.value).toBe(60);
-    expect(cd.external).toBe(true);
     expect(cd.stat.skillTypes).toBe('comboSkill');
     const dmg = overclock.effects!.find((e: any) => e.stat.modifier === 'dmgBonus') as any;
     expect(dmg.target).toBe('team');

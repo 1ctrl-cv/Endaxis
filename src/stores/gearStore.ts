@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import type { GearInstance } from '../types';
 import { getGearPiece } from '../data';
 import { isEquipmentArtificable } from '@/utils/equipmentLevels';
+import { EQUIPMENT_REFINE_MAX_TIER } from '@/stores/timeline/normalizers';
 
 const STORAGE_KEY = 'endfield-gear-armory';
 
@@ -43,10 +44,14 @@ export const useGearStore = defineStore('gears', () => {
   }
 
   function addGear(slug: string): GearInstance {
+    const piece = getGearPiece(slug);
     const instance: GearInstance = {
       id: generateId(),
       gearPieceId: slug,
-      artificingLevels: [],
+      artificingLevels:
+        piece && isEquipmentArtificable(piece.levelRequirement)
+          ? Array(4).fill(EQUIPMENT_REFINE_MAX_TIER)
+          : [],
     };
     gears.value.push(instance);
     persist();
