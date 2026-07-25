@@ -470,9 +470,6 @@
       "initialGaugeAppliedFull": "Начальная энергия: полная",
       "initialGaugeAppliedUnified": "Всем задано {value} (сохранено в профиль сценария)",
       "initialGaugeCustomInvalid": "Введите неотрицательное целое",
-      "initialGaugeCustomShort": "С",
-      "initialGaugeEmptyShort": "0",
-      "initialGaugeFullShort": "MAX",
       "initialGaugeUnifiedTitle": "Одинаковая начальная энергия",
       "snapPrecision": "Точность привязки (Alt+S)"
     },

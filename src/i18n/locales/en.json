@@ -470,9 +470,6 @@
       "initialGaugeAppliedFull": "Initial gauge: full",
       "initialGaugeAppliedUnified": "Set all to {value} (saved into this scenario's custom profile)",
       "initialGaugeCustomInvalid": "Enter a non-negative integer",
-      "initialGaugeCustomShort": "C",
-      "initialGaugeEmptyShort": "0",
-      "initialGaugeFullShort": "MAX",
       "initialGaugeUnifiedTitle": "Set all initial gauges",
       "snapPrecision": "Snap precision (Alt+S)"
     },

@@ -55,6 +55,8 @@ interface PersistenceDeps {
   prepExpanded: Ref<boolean>;
   battleDuration: Ref<number>;
   trackRowHeightWeights: Ref<number[]>;
+  initialGaugeMode: Ref<'empty' | 'full' | 'custom'>;
+  customInitialGauges: Ref<Record<string, number>>;
   isLoading: Ref<boolean>;
   historyStack: Ref<string[]>;
   historyIndex: Ref<number>;
@@ -104,6 +106,8 @@ export function useTimelinePersistence(deps: PersistenceDeps) {
     prepExpanded,
     battleDuration,
     trackRowHeightWeights,
+    initialGaugeMode,
+    customInitialGauges,
     isLoading,
     historyStack,
     historyIndex,
@@ -147,6 +151,8 @@ export function useTimelinePersistence(deps: PersistenceDeps) {
         inheritedInitialEnemyState,
         contingencyContractTags,
         trackRowHeightWeights,
+        initialGaugeMode,
+        customInitialGauges,
         () => operatorStore.operators,
         () => weaponStore.weapons,
         () => gearStore.gears,
@@ -171,6 +177,8 @@ export function useTimelinePersistence(deps: PersistenceDeps) {
         newInheritedInitialEnemyState,
         newContingencyContractTags,
         newTrackRowHeightWeights,
+        newInitialGaugeMode,
+        newCustomInitialGauges,
         newOperators,
         newWeapons,
         newGears,
@@ -197,6 +205,8 @@ export function useTimelinePersistence(deps: PersistenceDeps) {
             prepExpanded: prepExpanded.value,
             battleDuration: battleDuration.value,
             trackRowHeightWeights: newTrackRowHeightWeights,
+            initialGaugeMode: newInitialGaugeMode,
+            customInitialGauges: newCustomInitialGauges,
             systemConstants: newSys,
             activeEnemyId: newEnemyId,
             activeEnemyLevel: newEnemyLevel,
@@ -370,6 +380,8 @@ export function useTimelinePersistence(deps: PersistenceDeps) {
         prepExpanded: prepExpanded.value,
         battleDuration: battleDuration.value,
         trackRowHeightWeights: trackRowHeightWeights.value,
+        initialGaugeMode: initialGaugeMode.value,
+        customInitialGauges: customInitialGauges.value,
         systemConstants: systemConstants.value,
         activeEnemyId: activeEnemyId.value,
         activeEnemyLevel: activeEnemyLevel.value,

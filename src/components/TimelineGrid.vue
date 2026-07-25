@@ -934,13 +934,6 @@ const showGameTime = computed(() => !isGameTimeCollapsed.value || store.isCaptur
 // Two tool-button rows + zoom need more header height than the old single row.
 const gridRowHeight = computed(() => (showGameTime.value ? '88px' : '76px'));
 
-const initialGaugeModeLabel = computed(() => {
-  locale.value;
-  if (store.initialGaugeMode === 'full') return t('timelineGrid.toolbar.initialGaugeFullShort');
-  if (store.initialGaugeMode === 'custom') return t('timelineGrid.toolbar.initialGaugeCustomShort');
-  return t('timelineGrid.toolbar.initialGaugeEmptyShort');
-});
-
 const isUnifiedGaugeEditorOpen = ref(false);
 const unifiedGaugeDraft = ref('');
 const unifiedGaugeInputRef = ref(null);
@@ -3369,12 +3362,49 @@ defineExpose({
           <div class="initial-gauge-tool">
             <button
               class="mini-tool-btn"
-              :class="{ 'is-active': store.initialGaugeMode !== 'empty' }"
+              :class="{
+                'is-active': store.initialGaugeMode !== 'empty',
+                'is-gauge-custom': store.initialGaugeMode === 'custom',
+              }"
               @click="onInitialGaugeToolClick"
               @contextmenu="onInitialGaugeToolContextMenu"
               :title="t('timelineGrid.toolbar.initialGauge')"
             >
-              <span class="btn-text">{{ initialGaugeModeLabel }}</span>
+              <!-- empty / full: lightning; custom: battery -->
+              <svg
+                v-if="store.initialGaugeMode !== 'custom'"
+                class="gauge-tool-icon"
+                viewBox="0 0 24 24"
+                width="12"
+                height="12"
+                aria-hidden="true"
+              >
+                <path
+                  d="M13 2L4 14h7l-1 8 10-13h-7l0-7z"
+                  :fill="store.initialGaugeMode === 'full' ? 'currentColor' : 'none'"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linejoin="round"
+                  stroke-linecap="round"
+                />
+              </svg>
+              <svg
+                v-else
+                class="gauge-tool-icon"
+                viewBox="0 0 24 24"
+                width="12"
+                height="12"
+                aria-hidden="true"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linejoin="round"
+                stroke-linecap="round"
+              >
+                <rect x="3" y="7" width="16" height="10" rx="2" />
+                <path d="M19 10h2v4h-2" />
+                <path d="M7 10v4M11 10v4M15 10v4" stroke-width="1.75" />
+              </svg>
             </button>
             <div
               v-if="isUnifiedGaugeEditorOpen"
@@ -5041,6 +5071,17 @@ defineExpose({
   color: #ffd700;
   border-color: #ffd700;
   background: rgba(255, 215, 0, 0.1);
+}
+
+.mini-tool-btn.is-gauge-custom.is-active {
+  color: #7dd3fc;
+  border-color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+}
+
+.gauge-tool-icon {
+  display: block;
+  flex-shrink: 0;
 }
 
 .btn-text {

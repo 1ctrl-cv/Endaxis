@@ -1215,6 +1215,9 @@ export const useTimelineStore = defineStore('timeline', () => {
       prepDuration: prepDuration.value,
       prepExpanded: prepExpanded.value,
       battleDuration: battleDuration.value,
+      trackRowHeightWeights: trackRowHeightWeights.value,
+      initialGaugeMode: initialGaugeMode.value,
+      customInitialGauges: customInitialGauges.value,
       systemConstants: systemConstants.value,
       activeEnemyId: activeEnemyId.value,
       activeEnemyLevel: activeEnemyLevel.value,
@@ -4855,12 +4858,13 @@ export const useTimelineStore = defineStore('timeline', () => {
       track.weaponBuffTier = 1;
       track.stats = createDefaultStats();
       track.operatorStatus = null;
-      track.initialGauge = 0;
       track.actions = [];
       activeTrackIndex.value = trackIndex;
       activeTrackId.value = normalizedNewOperatorId;
       if (selectedActionId.value && actionIdsToDelete.has(selectedActionId.value)) clearSelection();
       recomputeAllTrackOperatorStatuses();
+      // After status recompute so "full" uses the same max as the toolbar preset (cost reduction etc.).
+      track.initialGauge = resolveTrackInitialGaugeForCurrentMode(track);
       commitState();
     }
   }
@@ -4945,18 +4949,20 @@ export const useTimelineStore = defineStore('timeline', () => {
     commitState();
   }
 
+  function resolveTrackInitialGaugeForCurrentMode(track: Track | null | undefined) {
+    if (!track?.id) return 0;
+    const mode = initialGaugeMode.value;
+    if (mode === 'empty') return 0;
+    if (mode === 'full') return getTrackGaugeMax(track.id);
+    return clampTrackInitialGauge(track, customInitialGauges.value[track.id] ?? 0);
+  }
+
   function applyInitialGaugePreset(mode: InitialGaugeMode = initialGaugeMode.value) {
+    initialGaugeMode.value = mode;
     for (const track of tracks.value) {
       if (!track?.id) continue;
-      const next =
-        mode === 'empty'
-          ? 0
-          : mode === 'full'
-            ? getTrackGaugeMax(track.id)
-            : clampTrackInitialGauge(track, customInitialGauges.value[track.id] ?? 0);
-      track.initialGauge = next;
+      track.initialGauge = resolveTrackInitialGaugeForCurrentMode(track);
     }
-    initialGaugeMode.value = mode;
     commitState();
   }
 
@@ -5712,6 +5718,8 @@ export const useTimelineStore = defineStore('timeline', () => {
     trackRowHeightWeights,
     simulationEndline,
     simulationStartline,
+    initialGaugeMode,
+    customInitialGauges,
     isLoading,
     historyStack,
     historyIndex,
