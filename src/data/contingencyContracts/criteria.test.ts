@@ -463,12 +463,15 @@ describe("dmgBonus skillTypes:'nonSkill' scope", () => {
     expect(battle.damageModifiers.some(m => m.skillTypes === 'nonSkill')).toBe(false);
   });
 
-  it('unscoped dmgBonus (所有技能) matches skill hits but not reaction/untyped hits', () => {
+  it('unscoped dmgBonus (所有技能) matches battle/combo/ultimate but not basic or untyped hits', () => {
     const global: ScopedDamageModifier = { modifier: 'dmgBonus', value: 0.5 };
     expect(filterDamageModifiers([global], 'heat', undefined, undefined).dmgBonus).toBe(0);
     expect(filterDamageModifiers([global], 'heat', 'battleSkill', undefined).dmgBonus).toBe(0.5);
-    expect(filterDamageModifiers([global], 'heat', 'basicAttack', undefined).dmgBonus).toBe(0.5);
-    expect(filterDamageModifiers([global], 'heat', 'dive', undefined).dmgBonus).toBe(0.5);
+    expect(filterDamageModifiers([global], 'heat', 'comboSkill', undefined).dmgBonus).toBe(0.5);
+    expect(filterDamageModifiers([global], 'heat', 'ultimate', undefined).dmgBonus).toBe(0.5);
+    expect(filterDamageModifiers([global], 'heat', 'basicAttack', undefined).dmgBonus).toBe(0);
+    expect(filterDamageModifiers([global], 'heat', 'finalStrike', undefined).dmgBonus).toBe(0);
+    expect(filterDamageModifiers([global], 'heat', 'dive', undefined).dmgBonus).toBe(0);
     // treatAsReaction hits (e.g. Mifu battle-skill seg3 / mifu-world-splitter crush) use the
     // reaction path with skillType undefined — same as untyped above, so unscoped all-skill
     // bonus does not apply. See damageGolden "Mifu battle-skill treatAsReaction crush…".

@@ -376,12 +376,12 @@ function openItemEditor(slot) {
   flex-direction: column;
   gap: 10px;
   padding: 13px 14px;
-  border: 1px solid rgba(234, 179, 8, 0.24);
-  background: linear-gradient(90deg, rgba(234, 179, 8, 0.1), rgba(255, 255, 255, 0.035));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .gear-set-bonus-title {
-  color: #eab308;
+  color: #d6d6d6;
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 1px;
@@ -404,12 +404,7 @@ function openItemEditor(slot) {
 }
 
 .gear-set-bonus-dot {
-  width: 6px;
-  height: 6px;
-  flex: 0 0 6px;
-  border-radius: 50%;
-  background: #eab308;
-  box-shadow: 0 0 8px rgba(234, 179, 8, 0.75);
+  display: none;
 }
 
 .gear-set-bonus-name {
@@ -421,7 +416,7 @@ function openItemEditor(slot) {
 
 .gear-set-bonus-count {
   margin-left: auto;
-  color: #eab308;
+  color: #aaa;
   font-family: 'Roboto Mono', monospace;
   font-size: 12px;
   white-space: nowrap;

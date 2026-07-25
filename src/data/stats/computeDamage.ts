@@ -56,15 +56,8 @@ function matchesSkillType(
   return types.includes(skillType);
 }
 
-/** Skill types covered by unscoped "所有技能伤害加成" (not reactions / arts burst / etc.). */
-const ALL_SKILL_DMG_BONUS_TYPES = new Set([
-  'basicAttack',
-  'dive',
-  'finalStrike',
-  'battleSkill',
-  'comboSkill',
-  'ultimate',
-]);
+/** Skill types covered by unscoped "所有技能伤害加成" (not basic attacks / reactions / arts burst). */
+const ALL_SKILL_DMG_BONUS_TYPES = new Set(['battleSkill', 'comboSkill', 'ultimate']);
 
 function hasElementScope(elements: string | string[] | undefined): boolean {
   if (elements == null) return false;
@@ -75,7 +68,7 @@ function hasElementScope(elements: string | string[] | undefined): boolean {
  * dmgBonus skill-type matching:
  * - Explicit `skillTypes` (incl. `nonSkill`): same as matchesSkillType
  * - Element-only (no skillTypes): any hit of that element, including reactions
- * - Fully unscoped ("所有技能伤害加成"): only operator skills listed above — not reactions/burst
+ * - Fully unscoped ("所有技能伤害加成"): battle/combo/ultimate only — not basic attacks/reactions/burst
  */
 function matchesDmgBonusSkillScope(
   filter: string | string[] | undefined,
