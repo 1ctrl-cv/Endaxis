@@ -106,17 +106,28 @@ export function buildApplyExpireWindows(
     keyApplies.sort((a, b) => a.time - b.time);
     const expTimes = (expireByKey.get(key) ?? []).slice().sort((a, b) => a - b);
     const windows: ActivationWindow[] = [];
+    // Each expire closes at most one apply so same-timestamp expire→re-apply
+    // (e.g. Antal P5) keeps the boosted window instead of a zero-length drop.
+    let expIdx = 0;
 
     for (let i = 0; i < keyApplies.length; i++) {
       const a = keyApplies[i];
       if (!a) continue;
       const nextApplyTime = keyApplies[i + 1]?.time ?? Infinity;
-      // Continuations with remaining stacks (partial consume) use strict > so same-time
-      // expires don't close the window. All others use >= so full consumes close immediately.
-      const nextExpire =
-        a.isContinuation && a.stacks > 0
-          ? (expTimes.find(t => t > a.time) ?? a.expiresAt)
-          : (expTimes.find(t => t >= a.time) ?? a.expiresAt);
+
+      while (expIdx < expTimes.length && (expTimes[expIdx] as number) < a.time) expIdx++;
+
+      let nextExpire: number;
+      if (a.isContinuation && a.stacks > 0) {
+        // Remaining-stacks continuations: ignore same-time expires.
+        nextExpire = expTimes.slice(expIdx).find(t => t > a.time) ?? a.expiresAt;
+      } else if (expIdx < expTimes.length && (expTimes[expIdx] as number) >= a.time) {
+        nextExpire = expTimes[expIdx] as number;
+        expIdx++;
+      } else {
+        nextExpire = a.expiresAt;
+      }
+
       const end = Math.min(nextApplyTime, nextExpire);
       if (end > a.time) {
         windows.push({

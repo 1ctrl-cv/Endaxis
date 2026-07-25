@@ -131,17 +131,37 @@ const sheet: OperatorSheet = {
       ],
       triggers: [
         {
+          // Focus ends at 20s → re-apply same id at +4% for 40s (REPLACE, no second debuff).
+          // Marker blocks re-entry on the boosted expire (avoids an endless sim queue).
           trigger: { kind: 'onStatusExpire', status: 'antal-battle-focus', target: 'enemy' },
           effects: [
             {
               kind: 'derived',
               sourceEffect: 'antal-battle-focus',
+              condition: {
+                kind: 'not',
+                condition: { kind: 'enemyStatus', status: 'antal-focus-p5-boosted' },
+              },
+              // id on override so P5's duration:20 patchEffect does not retarget this derived.
               effect: {
+                id: 'antal-battle-focus',
                 duration: 40,
-                scaling: {
-                  additive: [4],
-                },
+                scaling: { additive: [4] },
                 silent: true,
+              },
+            },
+            {
+              id: 'antal-focus-p5-boosted',
+              kind: 'status',
+              target: 'enemy',
+              duration: 999,
+              hide: true,
+              silent: true,
+              maxStacks: 1,
+              stackStrategy: 'REPLACE',
+              condition: {
+                kind: 'not',
+                condition: { kind: 'enemyStatus', status: 'antal-focus-p5-boosted' },
               },
             },
           ],
@@ -232,6 +252,7 @@ const sheet: OperatorSheet = {
                 {
                   offset: 0.67,
                   effects: [
+                    { kind: 'consume', enemyStatus: 'antal-focus-p5-boosted' },
                     {
                       id: 'antal-battle-focus',
                       name: 'focus',
@@ -239,6 +260,8 @@ const sheet: OperatorSheet = {
                       stat: { modifier: 'susceptibility', elements: ['electric', 'heat'] },
                       value: [5, 5, 6, 6, 7, 7, 8, 8, 8, 9, 9, 10],
                       duration: 60,
+                      maxStacks: 1,
+                      stackStrategy: 'REPLACE',
                       applyTiming: 'beforeDamage',
                       icon: '/operators/antal/icon_battle_antal_buff.webp',
                     },
@@ -304,11 +327,13 @@ const sheet: OperatorSheet = {
       cooldown: [25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 24],
     },
     ultimate: {
+      element: 'electric',
       segments: [
         {
           duration: 1.87,
           damageGroups: [
             {
+              element: 'electric',
               hits: [
                 {
                   offset: 1.63,

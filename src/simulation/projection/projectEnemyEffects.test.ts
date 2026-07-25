@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { getDisplayKeyCandidates } from '@/utils/effectDisplay';
 import { projectFromSimLog } from './projectEnemyEffects';
+import { buildApplyExpireWindows } from './projectTriggeredEffects';
 
 describe('enemy effect projection display keys', () => {
   it('uses status names for display while preserving runtime status identity', () => {
@@ -53,5 +54,48 @@ describe('enemy effect projection display keys', () => {
     expect(status?.typeKey).toBe('state:oldenStare:tangtang-oldenStare');
     expect(marker?.typeKey).toBe(status?.typeKey);
     expect(getDisplayKeyCandidates(status?.typeKey)).toContain('oldenStare');
+  });
+});
+
+describe('buildApplyExpireWindows', () => {
+  it('keeps a same-timestamp expire→re-apply as a second window', () => {
+    const base = {
+      kind: 'status' as const,
+      id: 'status-a',
+      name: 'a',
+      target: 'enemy' as const,
+      value: 10,
+    };
+    const windows = buildApplyExpireWindows(
+      [
+        {
+          key: 'status-a',
+          time: 1,
+          stacks: 1,
+          maxStacks: 1,
+          expiresAt: 21,
+          effect: base,
+          effectId: 'status-a',
+        },
+        {
+          key: 'status-a',
+          time: 21,
+          stacks: 1,
+          maxStacks: 1,
+          expiresAt: 61,
+          effect: { ...base, value: 14 },
+          effectId: 'status-a',
+        },
+      ],
+      [
+        { key: 'status-a', time: 21 },
+        { key: 'status-a', time: 61 },
+      ],
+    );
+
+    expect(windows.get('status-a')).toEqual([
+      expect.objectContaining({ start: 1, end: 21 }),
+      expect.objectContaining({ start: 21, end: 61, effect: expect.objectContaining({ value: 14 }) }),
+    ]);
   });
 });

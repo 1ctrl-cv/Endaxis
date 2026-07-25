@@ -757,6 +757,7 @@ export function resolveEffect(effect: Effect, idx: number): ResolvedEffect {
         ...(e.multiplierScaling !== undefined
           ? { multiplierScaling: resolveScalingDef(e.multiplierScaling, idx) }
           : {}),
+        ...(e.scaling !== undefined ? { scaling: resolveScalingDef(e.scaling, idx) } : {}),
       };
       return base as ResolvedEffect;
     }
@@ -853,6 +854,38 @@ function applyEffectPatch(
 }
 
 /**
+ * Fold plain numeric `scaling.additive` terms into `value` for display/logs.
+ */
+function bakeConstantAdditiveIntoValue(effect: ResolvedEffect): ResolvedEffect {
+  const value = (effect as { value?: unknown }).value;
+  const scaling = (effect as { scaling?: ResolvedScalingDef }).scaling;
+  if (typeof value !== 'number' || !scaling?.additive?.length) return effect;
+
+  let constSum = 0;
+  const rest: NonNullable<ResolvedScalingDef['additive']> = [];
+  for (const term of scaling.additive) {
+    if (typeof term === 'number') constSum += term;
+    else rest.push(term);
+  }
+  if (constSum === 0) return effect;
+
+  const nextScaling: ResolvedScalingDef = { ...scaling, additive: rest };
+  if (!rest.length) delete nextScaling.additive;
+  const hasScaling = !!(
+    nextScaling.additive?.length ||
+    nextScaling.multiplier?.length ||
+    nextScaling.cap !== undefined ||
+    nextScaling.conditionalScaling
+  );
+
+  return {
+    ...effect,
+    value: value + constSum,
+    scaling: hasScaling ? nextScaling : undefined,
+  } as ResolvedEffect;
+}
+
+/**
  * Expand a DerivedEffect into a ResolvedEffect by copying the source and merging overrides.
  * Returns null if the source effect is not present (e.g. talent inactive).
  */
@@ -863,15 +896,18 @@ function resolveDerivedEffect(
   const sourceCe = effectById.get(derived.sourceEffect);
   if (!sourceCe) return null;
   const source = sourceCe.effect as ResolvedEffect;
+  // hydrateTriggerEffect often stamps name:'' — don't let that clobber the source name.
+  const derivedName = derived.name !== undefined && derived.name !== '' ? derived.name : undefined;
   const base: ResolvedEffect = {
     ...source,
     ...(derived.id !== undefined ? { id: derived.id } : {}),
     ...(derived.condition !== undefined ? { condition: derived.condition } : {}),
-    ...(derived.name !== undefined ? { name: derived.name } : {}),
+    ...(derivedName !== undefined ? { name: derivedName } : {}),
     ...(derived.icon !== undefined ? { icon: derived.icon } : {}),
     ...(derived.icd !== undefined ? { icd: derived.icd } : {}),
   };
-  return derived.effect ? applyEffectPatch(base, derived.effect) : base;
+  const merged = derived.effect ? applyEffectPatch(base, derived.effect) : base;
+  return bakeConstantAdditiveIntoValue(merged);
 }
 
 /**
