@@ -187,6 +187,30 @@ function readTrimmedText(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
+function formatGameTextValue(value: unknown): string {
+  if (typeof value === 'string') return value;
+  const number = Number(value);
+  if (!Number.isFinite(number)) return '';
+  if (Number.isInteger(number)) return String(number);
+  return number.toFixed(2).replace(/\.?0+$/, '');
+}
+
+function getIndexedValues(values: unknown, level: number): unknown[] {
+  if (!Array.isArray(values) || values.length === 0) return [];
+  const index = Math.max(0, Math.min(values.length - 1, Math.floor(Number(level) || 1) - 1));
+  const row = values[index] ?? values[0];
+  return Array.isArray(row) ? row : [row];
+}
+
+function formatIndexedDescription(template: string, values: unknown[]) {
+  if (!values.length) return template;
+  return template.replace(/\{(\d+)\}/g, (match, indexText) => {
+    const value = values[Number(indexText)];
+    const formatted = formatGameTextValue(value);
+    return formatted || match;
+  });
+}
+
 function getOperatorEntry(slug: string, locale?: string | null) {
   return getEntry(operatorsZhTable, operatorsEnTable, slug, locale);
 }
@@ -381,9 +405,12 @@ export function getWeaponSkillDescription(
   slug: string,
   skillKey: 'skill1' | 'skill2' | 'skill3',
   locale?: string | null,
+  level?: number | null,
 ) {
   const entry = getWeaponEntry(slug, locale);
-  return readTrimmedText(entry?.[skillKey]?.description);
+  const description = readTrimmedText(entry?.[skillKey]?.description);
+  if (!description || !level) return description;
+  return formatIndexedDescription(description, getIndexedValues(entry?.[skillKey]?.values, level));
 }
 
 export function getWeaponSkillPrefix(
@@ -407,14 +434,10 @@ export function getGearSetGameName(slug: string, locale?: string | null) {
   return readTrimmedText(entry?.setName ?? entry?.name) || humanizeIdentifier(slug);
 }
 
-export function getGearSetPassiveText(slug: string, locale?: string | null) {
+export function getGearSetGameDescription(slug: string, locale?: string | null) {
   const entry = getGearSetEntry(slug, locale);
-  return readTrimmedText(entry?.passive);
-}
-
-export function getGearSetConditionalText(slug: string, locale?: string | null) {
-  const entry = getGearSetEntry(slug, locale);
-  return readTrimmedText(entry?.conditional);
+  if (!entry || typeof entry !== 'object') return null;
+  return readTrimmedText(entry.description);
 }
 
 export function getGearSetZhName(slug: string) {

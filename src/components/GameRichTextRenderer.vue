@@ -164,10 +164,12 @@ function renderTermTooltip(term, locale, depth) {
 }
 
 :global(.game-rich-text-icon-text) {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  vertical-align: middle;
+  display: inline;
+  vertical-align: baseline;
+}
+
+:global(.game-rich-text-icon-text > .game-rich-text-icon) {
+  margin-right: 2px;
 }
 
 :global(.game-rich-text-icon) {
@@ -176,7 +178,7 @@ function renderTermTooltip(term, locale, depth) {
   max-width: 1.75em;
   height: 1.16em;
   object-fit: contain;
-  vertical-align: -0.18em;
+  vertical-align: -0.14em;
 }
 
 :global(.game-rich-text-inline-image) {
