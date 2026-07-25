@@ -731,12 +731,20 @@ async function processExport() {
   });
 
   const originalShift = store.timelineShift;
+  const originalScrollTop = store.timelineScrollTop;
 
   const timelineMain = document.querySelector('.timeline-main');
   const workspaceEl = document.querySelector('.timeline-workspace');
+  const timelineGridContainer = document.querySelector('.timeline-grid-container');
   const gridLayout = document.querySelector('.timeline-grid-layout');
+  const tracksViewport = document.querySelector('.tracks-content-viewport');
+  const tracksScroller = document.querySelector('.tracks-content-scroller');
+  const tracksHeader = document.querySelector('.tracks-header-sticky');
+  const timeRuler = document.querySelector('.time-ruler-wrapper');
+  const bottomResizer = document.querySelector('.workbench-resizer--bottom');
+  const bottomPanel = document.querySelector('.resource-monitor-panel');
   const scrollers = document.querySelectorAll(
-    '.tracks-content-scroller, .chart-scroll-wrapper, .timeline-grid-container',
+    '.tracks-content-viewport, .tracks-content-scroller, .chart-scroll-wrapper, .timeline-grid-container',
   );
   const tracksContent = document.querySelector('.tracks-content');
   const settingsScrollArea = document.querySelector('.settings-scroll-area');
@@ -744,23 +752,43 @@ async function processExport() {
   const pathHoverZones = document.querySelectorAll('path.hover-zone');
 
   const styleMap = new Map();
+  const scrollMap = new Map();
   const backupStyle = el => {
     if (el) styleMap.set(el, el.style.cssText);
   };
+  const backupScroll = el => {
+    if (el) scrollMap.set(el, { left: el.scrollLeft, top: el.scrollTop });
+  };
   backupStyle(workspaceEl);
   backupStyle(timelineMain);
+  backupStyle(timelineGridContainer);
   backupStyle(gridLayout);
+  backupStyle(tracksViewport);
+  backupStyle(tracksScroller);
+  backupStyle(tracksHeader);
+  backupStyle(timeRuler);
+  backupStyle(bottomResizer);
+  backupStyle(bottomPanel);
   backupStyle(tracksContent);
   backupStyle(settingsScrollArea);
   scrollers.forEach(el => backupStyle(el));
+  scrollers.forEach(el => backupScroll(el));
+  backupScroll(tracksHeader);
   mainPaths.forEach(el => backupStyle(el));
   pathHoverZones.forEach(el => backupStyle(el));
 
   try {
+    if (!workspaceEl) throw new Error('timeline workspace missing');
+
     store.setTimelineShift(0);
     store.setIsCapturing(true);
     document.body.classList.add('capture-mode');
-    scrollers.forEach(el => (el.scrollLeft = 0));
+    scrollers.forEach(el => {
+      el.scrollLeft = 0;
+      el.scrollTop = 0;
+    });
+    if (tracksHeader) tracksHeader.scrollTop = 0;
+    store.setScrollTop(0);
 
     watermarkSubText.value = rawFilename.replace(/\.png$/i, '');
     if (watermarkEl.value) {
@@ -803,6 +831,52 @@ async function processExport() {
       settingsScrollArea.style.overflow = 'visible';
     }
 
+    await nextTick();
+    await new Promise(resolve => requestAnimationFrame(resolve));
+
+    const rulerHeight = Math.max(
+      1,
+      Math.ceil(timeRuler?.getBoundingClientRect?.().height || timeRuler?.offsetHeight || 0),
+    );
+    const tracksFullHeight = Math.max(
+      Math.ceil(tracksViewport?.scrollHeight || 0),
+      Math.ceil(tracksScroller?.scrollHeight || 0),
+      Math.ceil(tracksScroller?.offsetHeight || 0),
+      Math.ceil(tracksViewport?.offsetHeight || 0),
+    );
+    const gridFullHeight = rulerHeight + tracksFullHeight;
+    if (Number.isFinite(gridFullHeight) && gridFullHeight > 0) {
+      if (gridLayout) {
+        gridLayout.style.height = `${gridFullHeight}px`;
+        gridLayout.style.minHeight = `${gridFullHeight}px`;
+        gridLayout.style.gridTemplateRows = `${rulerHeight}px ${tracksFullHeight}px`;
+      }
+      if (timelineGridContainer) {
+        timelineGridContainer.style.height = `${gridFullHeight}px`;
+        timelineGridContainer.style.minHeight = `${gridFullHeight}px`;
+      }
+      if (tracksViewport) {
+        tracksViewport.style.height = `${tracksFullHeight}px`;
+        tracksViewport.style.minHeight = `${tracksFullHeight}px`;
+        tracksViewport.style.overflow = 'visible';
+      }
+      if (tracksHeader) {
+        tracksHeader.style.height = `${tracksFullHeight}px`;
+        tracksHeader.style.minHeight = `${tracksFullHeight}px`;
+        tracksHeader.style.overflow = 'visible';
+      }
+      if (workspaceEl) {
+        const bottomResizerHeight = Math.ceil(bottomResizer?.offsetHeight || 0);
+        const bottomPanelHeight = Math.ceil(
+          bottomPanel?.scrollHeight || bottomPanel?.offsetHeight || 0,
+        );
+        const workspaceFullHeight = gridFullHeight + bottomResizerHeight + bottomPanelHeight;
+        workspaceEl.style.height = `${workspaceFullHeight}px`;
+        workspaceEl.style.minHeight = `${workspaceFullHeight}px`;
+        workspaceEl.style.gridTemplateRows = `${gridFullHeight}px ${bottomResizerHeight}px ${bottomPanelHeight}px`;
+      }
+    }
+
     mainPaths.forEach(path => {
       const computed = window.getComputedStyle(path);
       path.style.strokeDasharray = computed.strokeDasharray;
@@ -815,11 +889,15 @@ async function processExport() {
     });
 
     await new Promise(resolve => setTimeout(resolve, 400));
+    const captureHeight = Math.max(
+      1,
+      Math.ceil(workspaceEl.scrollHeight || workspaceEl.getBoundingClientRect().height || 0) + 20,
+    );
 
     const capture = await snapdom(workspaceEl, {
       scale: 1.5,
       width: totalWidth,
-      height: workspaceEl.scrollHeight + 20,
+      height: captureHeight,
     });
 
     const captureBlob = await capture.toBlob({ type: 'png', dpr: 1 });
@@ -851,9 +929,14 @@ async function processExport() {
     document.body.classList.remove('capture-mode');
     store.setIsCapturing(false);
     styleMap.forEach((cssText, el) => (el.style.cssText = cssText));
+    scrollMap.forEach((position, el) => {
+      el.scrollLeft = position.left;
+      el.scrollTop = position.top;
+    });
     if (watermarkEl.value) {
       watermarkEl.value.style.display = 'none';
     }
+    store.setScrollTop(originalScrollTop);
     store.setTimelineShift(originalShift);
     loading.close();
   }
