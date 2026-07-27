@@ -85,4 +85,18 @@ describe('effect display key resolution', () => {
   it('derives display candidates from runtime state projection keys', () => {
     expect(getDisplayKeyCandidates('state:razorClawmark')).toContain('razorClawmark');
   });
+
+  it('unwraps reaction and physical_control projection keys for i18n', () => {
+    expect(getDisplayKeyCandidates('reaction:corrosion')).toContain('corrosion');
+    expect(getDisplayKeyCandidates('physical_control:lift')).toContain('lift');
+  });
+
+  it('resolves infliction/reaction effects to locale-friendly keys', () => {
+    expect(resolveEffectDisplayKey({ kind: 'infliction', element: 'nature' })).toBe(
+      'nature_infliction',
+    );
+    expect(resolveEffectDisplayKey({ kind: 'reaction', reactionType: 'corrosion' })).toBe(
+      'corrosion',
+    );
+  });
 });

@@ -5,7 +5,7 @@ import CustomNumberInput from './CustomNumberInput.vue';
 import ConnectionPath from './ConnectionPath.vue';
 import HitDamageDetailDialog from './HitDamageDetailDialog.vue';
 import { useI18n } from 'vue-i18n';
-import { getDisplayKeyCandidates } from '@/utils/effectDisplay';
+import { getDisplayKeyCandidates, resolveEffectDisplayKey } from '@/utils/effectDisplay';
 import { computeContingencyEnemyHealing } from '@/data/contingencyContracts/criteriaEffects';
 import { pickRepresentativePhysicalMarker } from '@/simulation/projection/projectEnemyAfflictionViz';
 
@@ -1007,13 +1007,17 @@ const lastDamageSnapshot = computed(() => {
     if (end <= start + LAST_HIT_EPS) continue;
     if (start > lastTime + LAST_HIT_EPS || end <= lastTime - LAST_HIT_EPS) continue;
 
-    const typeKey = String(seg.typeKey || '');
-    if (!typeKey || typeKey === 'default') continue;
+    const rawTypeKey = String(seg.typeKey || '');
+    if (!rawTypeKey || rawTypeKey === 'default') continue;
+    // Prefer effect-derived keys (nature_infliction / corrosion) over layout aliases
+    // (infliction / reaction:corrosion) so titles hit effects.name i18n.
+    const fromEffect = seg.effect ? resolveEffectDisplayKey(seg.effect) : '';
+    const displayTypeKey = fromEffect && fromEffect !== 'default' ? fromEffect : rawTypeKey;
     const stacks = Math.max(1, Number(seg.stacks) || 1);
-    const prev = byKey.get(typeKey);
+    const prev = byKey.get(displayTypeKey);
     if (!prev || stacks > prev.stacks) {
-      byKey.set(typeKey, {
-        typeKey,
+      byKey.set(displayTypeKey, {
+        typeKey: displayTypeKey,
         stacks,
         icon: seg.icon || null,
         disabled: seg.disabled === true,

@@ -49,6 +49,12 @@ function addRuntimeProjectionCandidates(out: string[], seen: Set<string>, value:
       return;
     }
     addCandidate(out, seen, body);
+    return;
+  }
+  // Enemy-effect layout keys: reaction:corrosion, physical_control:lift, …
+  if (key.startsWith('reaction:') || key.startsWith('physical_control:')) {
+    const sep = key.indexOf(':');
+    addCandidate(out, seen, key.slice(sep + 1));
   }
 }
 

@@ -52,12 +52,12 @@ const ACTIVITY_BAR_WIDTH = 48;
 const PANEL_MAX_WIDTH = 480;
 const LEFT_PANEL_MIN_WIDTH = 200;
 const RIGHT_PANEL_MIN_WIDTH = 260;
-const BOTTOM_PANEL_MIN_HEIGHT = 220;
+const BOTTOM_PANEL_MIN_HEIGHT = 240;
 const TIMELINE_MAIN_MIN_WIDTH = 540;
 const TIMELINE_MAIN_MIN_HEIGHT = 600;
 const DEFAULT_LEFT_PANEL_WIDTH = 200;
 const DEFAULT_RIGHT_PANEL_WIDTH = 260;
-const DEFAULT_BOTTOM_PANEL_HEIGHT = 220;
+const DEFAULT_BOTTOM_PANEL_HEIGHT = 240;
 const BOTTOM_RESIZER_HEIGHT = 1;
 const RIGHT_TOOLS_VISIBLE = true;
 const watermarkEl = ref(null);
@@ -96,7 +96,6 @@ function getMaxBottomPanelHeight(workspaceHeight = timelineWorkspaceHeight.value
 }
 
 const bottomPanelMinHeight = computed(() => {
-  if (leftBottomTool.value === 'contract') return BOTTOM_PANEL_MIN_HEIGHT + 20;
   const collapsedCount = Math.min(Math.max(Number(resourceMonitorCollapsedCount.value) || 0, 0), 2);
   if (collapsedCount === 1) return Math.round(BOTTOM_PANEL_MIN_HEIGHT * 0.75);
   if (collapsedCount >= 2) return Math.round(BOTTOM_PANEL_MIN_HEIGHT * 0.5);

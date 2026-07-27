@@ -34,6 +34,8 @@ const draft = reactive({
 });
 
 let commitTimer = null;
+/** Only commit after syncing from store — placeholder draft defaults must not overwrite. */
+let draftHydrated = false;
 
 function getTypeColor(typeKey) {
   return store.getColor?.(typeKey) || '#aaaaaa';
@@ -59,10 +61,12 @@ function syncDraftFromStore() {
   for (const el of ENEMY_RESISTANCE_ELEMENTS) {
     draft.resistance[el] = Math.max(0, Number(res[el]) || 0);
   }
+  draftHydrated = true;
 }
 
 function commitDraftNow() {
   clearCommitTimer();
+  if (!draftHydrated) return;
   const sc = store.systemConstants;
   sc.enemyHp = Math.max(1, Number(draft.enemyHp) || 1);
   sc.maxStagger = Math.max(1, Number(draft.maxStagger) || 1);
@@ -78,6 +82,7 @@ function commitDraftNow() {
 }
 
 function scheduleCommit() {
+  if (!draftHydrated) return;
   clearCommitTimer();
   commitTimer = setTimeout(() => {
     commitTimer = null;
