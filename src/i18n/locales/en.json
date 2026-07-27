@@ -1019,13 +1019,12 @@
   },
   "resourceMonitor": {
     "sections": {
-      "enemy": "Enemy Attributes",
-      "team": "Team Attributes"
+      "enemy": "Enemy Attributes"
     },
     "modules": {
       "enemyStatus": "Enemy Status",
       "stagger": "Stagger",
-      "sp": "SP Curve"
+      "sp": "SP"
     },
     "labels": {
       "enemyHp": "Enemy HP",
@@ -1049,11 +1048,16 @@
     "sp": {
       "insufficient": "Insufficient SP"
     },
+    "stagger": {
+      "weak": "WEAK"
+    },
     "enemy": {
       "custom": "Custom Enemy",
       "unknown": "Unknown Enemy",
       "clickToChange": "Click to change enemy",
       "dialogTitle": "Select Enemy",
+      "editStats": "Customize Stats",
+      "editStatsTitle": "Customize Enemy Stats",
       "searchPlaceholder": "Search enemy...",
       "level": "Level",
       "specialGroup": "Special",

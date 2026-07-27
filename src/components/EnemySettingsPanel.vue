@@ -4,7 +4,7 @@ import { storeToRefs } from 'pinia';
 import { Search } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import { useTimelineStore } from '../stores/timelineStore.js';
-import CustomNumberInput from './CustomNumberInput.vue';
+import EditEnemyBaseStatsDialog from './EditEnemyBaseStatsDialog.vue';
 import { getEnemyGameName } from '@/data/gameText';
 import { ENEMY_TIERS, ENEMY_TIER_WEIGHT } from '@/utils/theme';
 
@@ -18,6 +18,7 @@ const CATEGORY_ALL = '__ALL__';
 const CATEGORY_UNCATEGORIZED = '__UNCAT__';
 
 const isEnemySelectorVisible = ref(false);
+const isStatsDialogVisible = ref(false);
 const enemySearchQuery = ref('');
 const activeCategoryTab = ref(CATEGORY_ALL);
 const activeTierFilter = ref('ALL');
@@ -50,6 +51,20 @@ const showCustomEnemyCard = computed(
     activeTierFilter.value === 'ALL' &&
     !enemySearchQuery.value,
 );
+
+const summaryHp = computed(() => Math.max(1, Number(store.systemConstants.enemyHp) || 1));
+const summaryStagger = computed(() => Math.max(1, Number(store.systemConstants.maxStagger) || 1));
+const summaryStaggerNodes = computed(() =>
+  Math.max(0, Number(store.systemConstants.staggerNodeCount) || 0),
+);
+const resistanceSummary = computed(() => {
+  const res = store.systemConstants.resistance || {};
+  return ENEMY_RESISTANCE_ELEMENTS.map(el => ({
+    key: el,
+    value: Number(res[el]) || 0,
+    color: store.getColor?.(el) || '#aaaaaa',
+  }));
+});
 
 function tierWeight(tier) {
   return ENEMY_TIER_WEIGHT[tier] || 0;
@@ -114,10 +129,6 @@ function getTierLabel(tierValue) {
   return tier ? t(tier.labelKey) : '';
 }
 
-function getTypeColor(typeKey) {
-  return store.getColor?.(typeKey) || '#aaaaaa';
-}
-
 function selectEnemy(id) {
   store.applyEnemyPreset(id);
   isEnemySelectorVisible.value = false;
@@ -144,95 +155,46 @@ function setEnemyLevel(level) {
       <div class="enemy-info-col">
         <div class="enemy-name-line">
           <span class="enemy-name">{{ activeEnemyInfo.name }}</span>
+          <span v-if="!activeEnemyInfo.isCustom" class="enemy-level-badge"
+            >Lv{{ store.activeEnemyLevel }}</span
+          >
         </div>
         <div class="click-hint">{{ t('resourceMonitor.enemy.clickToChange') }}</div>
       </div>
     </button>
 
-    <div class="settings-scroll-area">
-      <div class="section-container tech-style border-red">
-        <div class="panel-tag-mini red">{{ t('resourceMonitor.sections.enemy') }}</div>
-        <div class="attribute-grid-mini">
-          <div class="control-row-mini">
-            <label>{{ t('resourceMonitor.labels.enemyHp') }}</label>
-            <CustomNumberInput
-              v-model="store.systemConstants.enemyHp"
-              :min="1"
-              active-color="#ff7875"
-              class="standard-input"
-            />
-          </div>
-          <div class="control-row-mini">
-            <label>{{ t('resourceMonitor.labels.maxStagger') }}</label>
-            <CustomNumberInput
-              v-model="store.systemConstants.maxStagger"
-              :min="1"
-              active-color="#ff7875"
-              class="standard-input"
-            />
-          </div>
-          <div class="control-row-mini">
-            <label>{{ t('resourceMonitor.labels.staggerNodes') }}</label>
-            <CustomNumberInput
-              v-model="store.systemConstants.staggerNodeCount"
-              :min="0"
-              class="standard-input"
-            />
-          </div>
-          <div class="control-row-mini">
-            <label>{{ t('resourceMonitor.labels.nodeDuration') }}</label>
-            <CustomNumberInput
-              v-model="store.systemConstants.staggerNodeDuration"
-              :step="0.1"
-              active-color="#ff7875"
-              class="standard-input"
-            />
-          </div>
-          <div class="control-row-mini">
-            <label>{{ t('resourceMonitor.labels.breakDuration') }}</label>
-            <CustomNumberInput
-              v-model="store.systemConstants.staggerBreakDuration"
-              :step="0.5"
-              active-color="#ff7875"
-              class="standard-input"
-            />
-          </div>
-          <div class="control-row-mini">
-            <label>{{ t('resourceMonitor.labels.executionRecovery') }}</label>
-            <CustomNumberInput
-              v-model="store.systemConstants.executionRecovery"
-              :min="0"
-              class="standard-input"
-            />
-          </div>
-          <div class="control-row-mini">
-            <label>{{ t('resourceMonitor.labels.superArmor') }}</label>
-            <CustomNumberInput
-              v-model="store.systemConstants.superArmor"
-              :min="0"
-              class="standard-input"
-            />
-          </div>
-          <div class="mini-subsection-label">{{ t('resourceMonitor.labels.resistanceTitle') }}</div>
-          <div
-            v-for="element in ENEMY_RESISTANCE_ELEMENTS"
-            :key="element"
-            class="control-row-mini resistance-row"
-          >
-            <label :style="{ color: getTypeColor(element) }">
-              {{ t(`resourceMonitor.resistance.${element}`) }}
-            </label>
-            <CustomNumberInput
-              v-model="store.systemConstants.resistance[element]"
-              :min="0"
-              :step="1"
-              :active-color="getTypeColor(element)"
-              class="standard-input"
-            />
-          </div>
-        </div>
+    <div class="stats-summary">
+      <div class="summary-row">
+        <span class="summary-label">{{ t('resourceMonitor.labels.enemyHp') }}</span>
+        <span class="summary-value">{{ summaryHp.toLocaleString() }}</span>
       </div>
+      <div class="summary-row">
+        <span class="summary-label">{{ t('resourceMonitor.labels.maxStagger') }}</span>
+        <span class="summary-value">{{ summaryStagger.toLocaleString() }}</span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-label">{{ t('resourceMonitor.labels.staggerNodes') }}</span>
+        <span class="summary-value">{{ summaryStaggerNodes }}</span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-label">{{ t('resourceMonitor.labels.resistanceTitle') }}</span>
+        <span class="summary-value summary-value--res">
+          <template v-for="(item, index) in resistanceSummary" :key="item.key">
+            <span v-if="index > 0" class="res-sep">/</span>
+            <span class="res-value" :style="{ color: item.color }">{{ item.value }}</span>
+          </template>
+        </span>
+      </div>
+      <button
+        type="button"
+        class="ea-btn ea-btn--sm ea-btn--glass-rect stats-edit-btn"
+        @click="isStatsDialogVisible = true"
+      >
+        {{ t('resourceMonitor.enemy.editStats') }}
+      </button>
     </div>
+
+    <EditEnemyBaseStatsDialog v-model:visible="isStatsDialogVisible" />
 
     <el-dialog
       v-model="isEnemySelectorVisible"
@@ -303,10 +265,7 @@ function setEnemyLevel(level) {
       </div>
 
       <div class="enemy-list-grid">
-        <div
-          v-if="showCustomEnemyCard"
-          class="enemy-group-section"
-        >
+        <div v-if="showCustomEnemyCard" class="enemy-group-section">
           <div class="group-header">
             {{ t('resourceMonitor.enemy.specialGroup') }} <span class="count">(1)</span>
           </div>
@@ -317,7 +276,7 @@ function setEnemyLevel(level) {
               style="--tier-color: #ffd700"
               @click="selectEnemy('custom')"
             >
-              <div class="enemy-avatar-wrapper">
+              <div class="enemy-avatar-wrapper is-custom">
                 <div class="enemy-avatar custom">?</div>
               </div>
               <div class="enemy-info">
@@ -337,7 +296,10 @@ function setEnemyLevel(level) {
               v-for="enemy in group.list"
               :key="enemy.id"
               class="enemy-card"
-              :class="{ selected: store.activeEnemyId === enemy.id }"
+              :class="{
+                selected: store.activeEnemyId === enemy.id,
+                'has-tier': enemy.tier && enemy.tier !== 'normal',
+              }"
               :style="{ '--tier-color': getTierColor(enemy.tier) }"
               @click="selectEnemy(enemy.id)"
             >
@@ -347,28 +309,12 @@ function setEnemyLevel(level) {
                   class="enemy-avatar"
                   @error="e => (e.target.src = '/Endaxis/avatars/default_enemy.webp')"
                 />
-                <div
-                  v-if="enemy.tier && enemy.tier !== 'normal'"
-                  class="tier-badge"
-                  :style="{ backgroundColor: getTierColor(enemy.tier) }"
-                >
+                <div v-if="enemy.tier && enemy.tier !== 'normal'" class="tier-strip">
                   {{ getTierLabel(enemy.tier) }}
                 </div>
               </div>
               <div class="enemy-info">
-                <div
-                  class="name"
-                  :style="{
-                    color:
-                      enemy.tier === 'leader'
-                        ? '#ff4d4f'
-                        : enemy.tier === 'boss'
-                          ? '#ffd700'
-                          : '#f0f0f0',
-                  }"
-                >
-                  {{ enemy.name }}
-                </div>
+                <div class="name">{{ enemy.name }}</div>
                 <div class="desc">
                   {{
                     t('resourceMonitor.enemy.desc', {
@@ -382,10 +328,7 @@ function setEnemyLevel(level) {
           </div>
         </div>
 
-        <div
-          v-if="groupedEnemyList.length === 0 && !showCustomEnemyCard"
-          class="empty-state"
-        >
+        <div v-if="groupedEnemyList.length === 0 && !showCustomEnemyCard" class="empty-state">
           {{ t('resourceMonitor.enemy.empty') }}
         </div>
       </div>
@@ -406,7 +349,7 @@ function setEnemyLevel(level) {
 .enemy-select-module {
   width: 100%;
   padding: 8px 10px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%);
+  background: rgba(255, 255, 255, 0.03);
   border: none;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
@@ -418,7 +361,7 @@ function setEnemyLevel(level) {
 }
 
 .enemy-select-module:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .module-deco-line {
@@ -428,7 +371,6 @@ function setEnemyLevel(level) {
   bottom: 8px;
   width: 2px;
   background: #ffd700;
-  box-shadow: 0 0 6px rgba(255, 215, 0, 0.4);
 }
 
 .custom-avatar-placeholder,
@@ -443,7 +385,6 @@ function setEnemyLevel(level) {
   font-size: 18px;
   font-weight: 900;
   font-family: 'Roboto Mono', monospace;
-  text-shadow: 0 0 6px rgba(255, 215, 0, 0.6);
 }
 
 .enemy-avatar-box {
@@ -469,7 +410,6 @@ function setEnemyLevel(level) {
   width: 100%;
   height: 1px;
   background: rgba(255, 215, 0, 0.3);
-  box-shadow: 0 0 4px #ffd700;
   animation: scan 3s infinite linear;
 }
 
@@ -507,6 +447,16 @@ function setEnemyLevel(level) {
   line-height: 1.2;
 }
 
+.enemy-level-badge {
+  flex-shrink: 0;
+  color: #ffd700;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  opacity: 0.86;
+}
+
 .click-hint {
   font-size: 10px;
   color: #ffd700;
@@ -514,74 +464,57 @@ function setEnemyLevel(level) {
   margin-top: 1px;
 }
 
-.settings-scroll-area {
+.stats-summary {
   flex: 1 1 0;
   min-height: 0;
-  overflow-y: auto;
-  padding: 12px 8px 10px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  scrollbar-width: none;
+  gap: 8px;
 }
 
-.settings-scroll-area::-webkit-scrollbar {
-  display: none;
-}
-
-.section-container.tech-style {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, transparent 100%);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-left: 3px solid rgba(255, 255, 255, 0.2);
-  padding: 10px 8px 8px;
-  position: relative;
-  flex-shrink: 0;
-}
-
-.section-container.border-red {
-  border-left-color: #ff7875;
-}
-
-.attribute-grid-mini {
+.summary-row {
   display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.control-row-mini {
-  display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.03);
 }
 
-.control-row-mini label {
+.summary-label {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.48);
   white-space: nowrap;
-  letter-spacing: 0.3px;
 }
 
-.mini-subsection-label {
-  margin-top: 4px;
-  padding-top: 7px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.58);
-  font-size: 10px;
+.summary-value {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.86);
+  text-align: right;
 }
 
-.resistance-row label {
-  max-width: 86px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.summary-value--res {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+.res-sep {
+  color: rgba(255, 255, 255, 0.28);
+  margin: 0 2px;
+}
+.res-value {
+  font-weight: 800;
 }
 
-:deep(.standard-input) {
-  width: 65px !important;
-  height: 22px !important;
-  font-size: 11px !important;
+.stats-edit-btn {
+  margin-top: auto;
+  width: 100%;
+  justify-content: center;
 }
 
 .selector-header {
@@ -688,35 +621,63 @@ function setEnemyLevel(level) {
 
 .enemy-card {
   --tier-color: #555;
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 8px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0%, transparent 100%);
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-left: 3px solid #444;
   cursor: pointer;
-  margin-bottom: 0;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease;
   min-width: 0;
   height: 64px;
   box-sizing: border-box;
 }
 
+.enemy-card.has-tier {
+  border-left-color: var(--tier-color);
+}
+
 .enemy-card:hover {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.15);
-  border-left-color: var(--tier-color) !important;
-  transform: translateY(-2px);
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.5),
-    -2px 0 8px -2px var(--tier-color);
+  background: rgba(255, 215, 0, 0.07);
+}
+
+.enemy-card.has-tier:hover {
+  background: color-mix(in srgb, var(--tier-color) 10%, rgba(255, 255, 255, 0.03));
 }
 
 .enemy-card.selected {
-  border-left-color: var(--tier-color) !important;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0%, transparent 100%);
+  background: rgba(255, 215, 0, 0.12);
+  border-top-color: rgba(255, 215, 0, 0.18);
+  border-right-color: rgba(255, 215, 0, 0.18);
+  border-bottom-color: rgba(255, 215, 0, 0.18);
+}
+
+.enemy-card.has-tier.selected {
+  background: color-mix(in srgb, var(--tier-color) 16%, rgba(255, 255, 255, 0.03));
+  border-top-color: color-mix(in srgb, var(--tier-color) 24%, transparent);
+  border-right-color: color-mix(in srgb, var(--tier-color) 24%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--tier-color) 24%, transparent);
+}
+
+.enemy-card.selected:hover {
+  background: rgba(255, 215, 0, 0.15);
+}
+
+.enemy-card.has-tier.selected:hover {
+  background: color-mix(in srgb, var(--tier-color) 20%, rgba(255, 255, 255, 0.03));
+}
+
+.enemy-card.selected .name {
+  color: #fff;
+}
+
+.enemy-card.has-tier.selected .name {
+  color: var(--tier-color);
 }
 
 .enemy-avatar-wrapper {
@@ -724,28 +685,42 @@ function setEnemyLevel(level) {
   width: 42px;
   height: 42px;
   flex-shrink: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #111;
 }
 
 .enemy-avatar {
   width: 100%;
   height: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: none;
   background: #111;
   object-fit: cover;
+  display: block;
 }
 
-.tier-badge {
+.tier-strip {
   position: absolute;
-  bottom: -2px;
-  right: -4px;
-  color: #000;
-  font-size: 8px;
-  font-weight: 900;
-  padding: 1px 5px;
-  border-radius: 2px;
-  text-transform: uppercase;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 14px;
+  padding: 0 2px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.62) 100%);
+  color: var(--tier-color);
+  border-top: 1px solid color-mix(in srgb, var(--tier-color) 55%, transparent);
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
 }
 
 .enemy-info {
@@ -767,6 +742,10 @@ function setEnemyLevel(level) {
   margin-bottom: 2px;
 }
 
+.enemy-card.has-tier .name {
+  color: var(--tier-color);
+}
+
 .enemy-info .desc {
   font-size: 10px;
   color: #888;
@@ -776,25 +755,16 @@ function setEnemyLevel(level) {
 }
 
 .enemy-avatar.custom {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 215, 0, 0.05);
-  border: 1px rgba(255, 215, 0, 0.4);
-  color: #ffd700;
+  border: none;
   font-size: 22px;
-  font-weight: 900;
-  font-family: 'Roboto Mono', monospace;
-  box-shadow: inset 0 0 10px rgba(255, 215, 0, 0.1);
-  text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
 }
 
-.enemy-card.selected .enemy-avatar.custom {
-  background: rgba(255, 215, 0, 0.15);
-  border-style: solid;
-  box-shadow: 0 0 12px rgba(255, 215, 0, 0.2);
+.enemy-avatar-wrapper.is-custom {
+  border-color: rgba(255, 215, 0, 0.4);
+}
+
+.enemy-card.selected .enemy-avatar-wrapper.is-custom {
+  background: rgba(255, 215, 0, 0.12);
 }
 
 .empty-state {

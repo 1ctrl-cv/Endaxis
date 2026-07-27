@@ -896,13 +896,12 @@
   },
   "resourceMonitor": {
     "sections": {
-      "enemy": "Атрибуты врага",
-      "team": "Атрибуты команды"
+      "enemy": "Атрибуты врага"
     },
     "modules": {
       "enemyStatus": "Статус врага",
       "stagger": "Ошеломление",
-      "sp": "Кривая ОН"
+      "sp": "ОН"
     },
     "labels": {
       "enemyHp": "Enemy HP",
@@ -926,11 +925,16 @@
     "sp": {
       "insufficient": "Недостаточно ОН"
     },
+    "stagger": {
+      "weak": "СЛАБ"
+    },
     "enemy": {
       "custom": "Настраиваемый враг",
       "unknown": "Неизвестный враг",
       "clickToChange": "Сменить врага",
       "dialogTitle": "Выбрать врага",
+      "editStats": "Настроить атрибуты",
+      "editStatsTitle": "Настройка атрибутов врага",
       "searchPlaceholder": "Поиск врага...",
       "level": "Уровень",
       "specialGroup": "Особые",

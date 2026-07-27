@@ -375,10 +375,12 @@ export function getOperatorSubSkillName(
   fallback?: string | null,
 ) {
   const entry = getOperatorEntry(slug, locale);
+  const table = entry?.subSkills;
+  const fallbackKey = readTrimmedText(fallback);
   return (
-    readTrimmedText(entry?.subSkills?.[subSkillKey]) ||
-    readTrimmedText(fallback) ||
-    humanizeIdentifier(subSkillKey)
+    readTrimmedText(table?.[subSkillKey]) ||
+    (fallbackKey ? readTrimmedText(table?.[fallbackKey]) : null) ||
+    humanizeIdentifier(fallbackKey || subSkillKey)
   );
 }
 

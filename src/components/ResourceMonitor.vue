@@ -6,7 +6,6 @@ import ConnectionPath from './ConnectionPath.vue';
 import HitDamageDetailDialog from './HitDamageDetailDialog.vue';
 import { useI18n } from 'vue-i18n';
 import { getDisplayKeyCandidates } from '@/utils/effectDisplay';
-import { getEnemyGameName } from '@/data/gameText';
 import { computeContingencyEnemyHealing } from '@/data/contingencyContracts/criteriaEffects';
 import { pickRepresentativePhysicalMarker } from '@/simulation/projection/projectEnemyAfflictionViz';
 
@@ -27,7 +26,6 @@ const MAX_CHART_HEIGHT = 520;
 
 const monitorRootRef = ref(null);
 const chartViewportRef = ref(null);
-const monitorHeight = ref(0);
 const chartViewportHeight = ref(0);
 
 let resizeObserver = null;
@@ -114,7 +112,6 @@ function endSectionResize() {
 
 function flushMonitorMetrics() {
   resizeRaf = null;
-  monitorHeight.value = monitorRootRef.value?.clientHeight || 0;
   chartViewportHeight.value = chartViewportRef.value?.clientHeight || 0;
 }
 
@@ -365,35 +362,17 @@ const sectionLayout = computed(() => {
     }
   });
 
-  let cursorTop = 0;
   const ranges = {};
   SECTION_KEYS.forEach(key => {
-    const handleBeforeVisible = resizeHandleItems.value.some(item => item.lowerKey === key);
-    if (handleBeforeVisible) {
-      cursorTop += SECTION_RESIZE_HANDLE_HEIGHT;
-    }
-
     const isCollapsed = collapsed[key];
     const bodyHeight = isCollapsed ? 0 : heights[key];
     const topbarHeight = isCollapsed ? 0 : SECTION_TOPBAR_HEIGHT;
     const stripHeight = isCollapsed ? COLLAPSED_STRIP_HEIGHT : 0;
-    const topbarTop = cursorTop;
-    const bodyTop = topbarTop + topbarHeight;
-    const bodyBottom = bodyTop + bodyHeight;
-    const shellHeight = topbarHeight + bodyHeight + stripHeight;
     ranges[key] = {
-      topbarTop,
-      topbarHeight,
-      bodyTop,
-      bodyBottom,
       bodyHeight,
       stripHeight,
-      shellHeight,
-      collapsed: isCollapsed,
-      handleBeforeVisible,
+      shellHeight: topbarHeight + bodyHeight + stripHeight,
     };
-
-    cursorTop += shellHeight;
   });
 
   return { heights, ranges };
@@ -401,7 +380,7 @@ const sectionLayout = computed(() => {
 
 const SECTION_BODY_HEIGHTS = computed(() => sectionLayout.value.heights);
 const sectionRects = computed(() => sectionLayout.value.ranges);
-const chartLabelFontSize = computed(() => 9);
+const chartLabelFontSize = 9;
 const warningLabelText = computed(() => t('resourceMonitor.sp.insufficient'));
 
 const gridLineTimes = computed(() => {
@@ -417,7 +396,6 @@ const gridLineTimes = computed(() => {
 });
 
 const COLOR_STAGGER = '#ff7875';
-const COLOR_LIMIT = '#d32f2f';
 const COLOR_SP_MAIN = '#ffd700';
 const COLOR_SP_WARN = '#ff4d4f';
 
@@ -841,18 +819,6 @@ const afflictionLayout = computed(() => {
   };
 });
 
-const activeEnemyInfo = computed(() => {
-  if (store.activeEnemyId === 'custom') {
-    return { name: t('resourceMonitor.enemy.custom') };
-  }
-  const enemy = store.enemyDatabase.find(e => e.id === store.activeEnemyId);
-  return {
-    name: enemy
-      ? getEnemyGameName(enemy.id, locale.value)
-      : t('resourceMonitor.enemy.unknown'),
-  };
-});
-
 const staggerResult = computed(() => {
   return store.staggerSeries;
 });
@@ -980,39 +946,99 @@ const transformStyle = computed(() => {
   };
 });
 
-const totalDamageDone = computed(() => {
-  return (store.simLog || []).reduce((sum, entry) => {
-    if (entry?.type !== 'DAMAGE_HIT') return sum;
-    const hit = entry.payload?.hitData;
-    return (
-      sum +
-      Number(
-        store.getHitDisplayDamage?.(hit) ??
-          hit?._expectedDamage ??
-          hit?._damageBreakdown?.expectedDamage ??
-          0,
-      )
-    );
-  }, 0);
-});
+const LAST_HIT_BUFF_ICON_LIMIT = 8;
+const LAST_HIT_EPS = 0.001;
+
+function getHitDamageAmount(hit) {
+  return Number(
+    store.getHitDisplayDamage?.(hit) ??
+      hit?._expectedDamage ??
+      hit?._damageBreakdown?.expectedDamage ??
+      0,
+  );
+}
 
 const enemyMaxHp = computed(() =>
   Math.max(1, Number(store.effectiveEnemyHp ?? store.systemConstants.enemyHp) || 1),
 );
-const enemyHealingDone = computed(() =>
-  computeContingencyEnemyHealing(store.enemyLog || [], {
-    maxHp: enemyMaxHp.value,
+
+/** Snapshot at the last DAMAGE_HIT time: remaining HP + active enemy effect icons. */
+const lastDamageSnapshot = computed(() => {
+  const maxHp = enemyMaxHp.value;
+  const hits = (store.simLog || []).filter(entry => entry?.type === 'DAMAGE_HIT');
+  if (!hits.length) {
+    return { remainingHp: maxHp, buffs: [], overflow: 0 };
+  }
+
+  let lastTime = -Infinity;
+  for (const entry of hits) {
+    const t = Number(entry.time) || 0;
+    if (t > lastTime) lastTime = t;
+  }
+
+  let damageUntil = 0;
+  for (const entry of hits) {
+    const t = Number(entry.time) || 0;
+    if (t <= lastTime + LAST_HIT_EPS) {
+      damageUntil += getHitDamageAmount(entry.payload?.hitData);
+    }
+  }
+
+  const healingUntil = computeContingencyEnemyHealing(store.enemyLog || [], {
+    maxHp,
     rate: Number(store.contingencyEnemyHealingRate) || 0,
-    until: Number(store.viewDuration) || Infinity,
+    until: lastTime,
     superArmor:
       Number(store.effectiveSystemConstants?.superArmor ?? store.systemConstants.superArmor) || 0,
-  }),
-);
-const enemyRemainingHp = computed(() => {
-  const remaining = enemyMaxHp.value - totalDamageDone.value + enemyHealingDone.value;
-  return Math.max(0, Math.min(enemyMaxHp.value, Math.round(remaining)));
+  });
+
+  const remainingHp = Math.max(
+    0,
+    Math.min(maxHp, Math.round(maxHp - damageUntil + healingUntil)),
+  );
+
+  const segments = store.enemyEffectLayout?.positionedSegments || [];
+  const byKey = new Map();
+  for (const seg of segments) {
+    if (seg?.isDamageHit) continue;
+    if (seg?.showIcon === false) continue;
+    const start = Number(seg.start) || 0;
+    const end = Number(seg.end) || start;
+    if (end <= start + LAST_HIT_EPS) continue;
+    if (start > lastTime + LAST_HIT_EPS || end <= lastTime - LAST_HIT_EPS) continue;
+
+    const typeKey = String(seg.typeKey || '');
+    if (!typeKey || typeKey === 'default') continue;
+    const stacks = Math.max(1, Number(seg.stacks) || 1);
+    const prev = byKey.get(typeKey);
+    if (!prev || stacks > prev.stacks) {
+      byKey.set(typeKey, {
+        typeKey,
+        stacks,
+        icon: seg.icon || null,
+        disabled: seg.disabled === true,
+      });
+    }
+  }
+
+  const buffs = Array.from(byKey.values()).sort((a, b) => {
+    if (a.disabled !== b.disabled) return a.disabled ? 1 : -1;
+    return String(a.typeKey).localeCompare(String(b.typeKey));
+  });
+  const overflow = Math.max(0, buffs.length - LAST_HIT_BUFF_ICON_LIMIT);
+
+  return {
+    remainingHp,
+    buffs: buffs.slice(0, LAST_HIT_BUFF_ICON_LIMIT),
+    overflow,
+  };
 });
+
+const enemyRemainingHp = computed(() => lastDamageSnapshot.value.remainingHp);
 const enemyHpRatio = computed(() => clamp(enemyRemainingHp.value / enemyMaxHp.value, 0, 1));
+const lastHitBuffIcons = computed(() => lastDamageSnapshot.value.buffs);
+const lastHitBuffOverflow = computed(() => lastDamageSnapshot.value.overflow);
+
 const currentStaggerValue = computed(() => {
   const points = staggerPoints.value;
   const last = points[points.length - 1];
@@ -1035,22 +1061,36 @@ const staggerRatio = computed(() => {
           {{ t('resourceMonitor.modules.enemyStatus') }}
         </div>
         <div v-else class="module-meta-body enemy-status-meta">
-          <div class="module-title red">{{ t('resourceMonitor.modules.enemyStatus') }}</div>
-          <div class="enemy-compact">
-            <div class="enemy-compact-text">
-              <div class="enemy-name-line">
-                <span class="enemy-name">{{ activeEnemyInfo.name }}</span>
-                <span v-if="store.activeEnemyId !== 'custom'" class="enemy-level-badge"
-                  >Lv{{ store.activeEnemyLevel }}</span
-                >
-              </div>
+          <div class="readout-header">
+            <span class="readout-title readout-title--hp">{{ t('resourceMonitor.modules.enemyStatus') }}</span>
+          </div>
+          <div class="readout-value readout-value--hp">
+            {{ enemyRemainingHp.toLocaleString()
+            }}<span class="readout-value-max">/{{ enemyMaxHp.toLocaleString() }}</span>
+          </div>
+          <div class="readout-bar">
+            <div
+              class="readout-bar-fill readout-bar-fill--hp"
+              :style="{ width: `${enemyHpRatio * 100}%` }"
+            ></div>
+          </div>
+          <div
+            v-if="lastHitBuffIcons.length || lastHitBuffOverflow"
+            class="last-hit-buffs"
+          >
+            <div
+              v-for="buff in lastHitBuffIcons"
+              :key="buff.typeKey"
+              class="anomaly-icon-box last-hit-buff"
+              :class="{ 'is-disabled': buff.disabled }"
+              :title="getTypeTitle(buff.typeKey)"
+            >
+              <img :src="getTypeIcon(buff.typeKey, buff.icon)" class="anomaly-icon" alt="" />
+              <div class="anomaly-stacks">{{ buff.stacks || 1 }}</div>
             </div>
-          </div>
-          <div class="module-value-text enemy-hp-text">
-            {{ enemyRemainingHp.toLocaleString() }}/{{ enemyMaxHp.toLocaleString() }}
-          </div>
-          <div class="enemy-hp-bar">
-            <div class="enemy-hp-fill" :style="{ width: `${enemyHpRatio * 100}%` }"></div>
+            <span v-if="lastHitBuffOverflow > 0" class="last-hit-buff-more"
+              >+{{ lastHitBuffOverflow }}</span
+            >
           </div>
         </div>
       </div>
@@ -1064,13 +1104,16 @@ const staggerRatio = computed(() => {
           {{ t('resourceMonitor.modules.stagger') }}
         </div>
         <div v-else class="module-meta-body stagger-meta">
-          <div class="module-title orange">{{ t('resourceMonitor.modules.stagger') }}</div>
-          <div class="module-value-text stagger-value-text">
-            {{ currentStaggerValue }}/{{ store.systemConstants.maxStagger }}
+          <div class="readout-header">
+            <span class="readout-title readout-title--stagger">{{ t('resourceMonitor.modules.stagger') }}</span>
           </div>
-          <div class="enemy-hp-bar stagger-value-bar">
+          <div class="readout-value readout-value--stagger">
+            {{ currentStaggerValue
+            }}<span class="readout-value-max">/{{ store.systemConstants.maxStagger }}</span>
+          </div>
+          <div class="readout-bar">
             <div
-              class="enemy-hp-fill stagger-value-fill"
+              class="readout-bar-fill readout-bar-fill--stagger"
               :style="{ width: `${staggerRatio * 100}%` }"
             ></div>
           </div>
@@ -1086,6 +1129,9 @@ const staggerRatio = computed(() => {
           {{ t('resourceMonitor.modules.sp') }}
         </div>
         <div v-else class="module-meta-body sp-meta">
+          <div class="readout-header">
+            <span class="readout-title readout-title--sp">{{ t('resourceMonitor.modules.sp') }}</span>
+          </div>
           <div class="module-control-row">
             <label>{{ t('resourceMonitor.labels.initialSp') }}</label>
             <CustomNumberInput
@@ -1402,7 +1448,7 @@ const staggerRatio = computed(() => {
                       text-anchor="middle"
                       style="text-shadow: 0 0 2px #ff7a45; letter-spacing: 1px"
                     >
-                      WEAK
+                      {{ t('resourceMonitor.stagger.weak') }}
                     </text>
                   </g>
 
@@ -1622,8 +1668,8 @@ const staggerRatio = computed(() => {
 }
 
 .monitor-sidebar {
-  background-color: #252525;
-  border-right: 1px solid #333;
+  background-color: #252526;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1631,7 +1677,7 @@ const staggerRatio = computed(() => {
 }
 
 .monitor-module-sidebar {
-  background: #222;
+  background: #252526;
 }
 
 .module-meta-shell {
@@ -1652,22 +1698,28 @@ const staggerRatio = computed(() => {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 6px;
   overflow: hidden;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0%, transparent 100%);
+  background: #252526;
   border-left: 3px solid rgba(255, 255, 255, 0.18);
+}
+
+.enemy-status-meta,
+.stagger-meta,
+.sp-meta {
+  justify-content: flex-start;
 }
 
 .enemy-status-meta {
   border-left-color: #ff7875;
 }
+
 .stagger-meta {
   border-left-color: #ff9c6e;
-  justify-content: center;
 }
+
 .sp-meta {
   border-left-color: #ffd700;
-  justify-content: center;
 }
 
 .module-meta-collapsed {
@@ -1675,121 +1727,104 @@ const staggerRatio = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   color: rgba(255, 255, 255, 0.55);
   font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  background: rgba(34, 34, 40, 0.94);
-  border-left: 3px solid rgba(255, 255, 255, 0.16);
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  background: #252526;
   box-sizing: border-box;
   white-space: nowrap;
 }
 
-.module-title {
+.readout-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.readout-title {
   font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.8px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.55);
   line-height: 1;
   white-space: nowrap;
 }
 
-.module-title.red {
+.readout-title--hp {
   color: #ff7875;
 }
-.module-title.orange {
+
+.readout-title--stagger {
   color: #ff9c6e;
 }
-.module-title.gold {
+
+.readout-title--sp {
   color: #ffd700;
 }
 
-.enemy-compact {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.enemy-compact-text {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.enemy-name-line {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-
-.enemy-level-badge {
-  flex-shrink: 0;
-  color: #ffd700;
-  font-family: 'Roboto Mono', monospace;
-  font-size: 10px;
-  font-weight: 800;
-  line-height: 1;
-  opacity: 0.86;
-}
-
-.enemy-hp-text {
-  text-align: center;
-}
-
-.module-value-text {
-  color: rgba(255, 255, 255, 0.82);
+.readout-value {
+  color: rgba(255, 255, 255, 0.86);
   font-family: 'Roboto Mono', monospace;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.1;
   white-space: nowrap;
 }
 
-.enemy-hp-bar {
-  height: 10px;
-  border: none;
+.readout-bar {
+  height: 5px;
   background: rgba(255, 255, 255, 0.08);
   overflow: hidden;
-  position: relative;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-.enemy-hp-fill {
+.readout-bar-fill {
   height: 100%;
-  background: #d9363e;
-  position: relative;
   transition: width 0.16s ease;
 }
 
-.enemy-hp-fill::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    45deg,
-    rgba(255, 255, 255, 0.18),
-    rgba(255, 255, 255, 0.18) 2px,
-    transparent 2px,
-    transparent 6px
-  );
-  pointer-events: none;
+.readout-bar-fill--hp {
+  background: #d9363e;
 }
 
-.stagger-value-text {
-  text-align: center;
-  color: rgba(255, 255, 255, 0.82);
-}
-
-.stagger-value-bar {
-  background: rgba(255, 214, 145, 0.08);
-}
-
-.stagger-value-fill {
+.readout-bar-fill--stagger {
   background: #d46b08;
+}
+
+.last-hit-buffs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-height: 0;
+  margin-top: 2px;
+  --aff-icon-size: 18px;
+}
+
+.last-hit-buff.is-disabled {
+  opacity: 0.42;
+  filter: grayscale(0.5);
+}
+
+.last-hit-buff-more {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'Roboto Mono', monospace;
+}
+
+.readout-value--hp {
+  color: #ff7875;
+}
+
+.readout-value--stagger {
+  color: #ff9c6e;
+}
+
+.readout-value-max {
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 600;
 }
 
 .module-control-row {
@@ -1803,16 +1838,6 @@ const staggerRatio = computed(() => {
   color: rgba(255, 255, 255, 0.48);
   font-size: 11px;
   white-space: nowrap;
-}
-
-.enemy-name {
-  font-weight: bold;
-  color: #eee;
-  font-size: 12px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.2;
 }
 
 :deep(.standard-input) {
@@ -2160,15 +2185,6 @@ const staggerRatio = computed(() => {
   border: 1px solid rgba(255, 77, 79, 0.3);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
   white-space: nowrap;
-}
-
-@keyframes scan {
-  0% {
-    transform: translateY(-10cqh);
-  }
-  100% {
-    transform: translateY(110cqh);
-  }
 }
 
 .stun-bg-anim {

@@ -1019,13 +1019,12 @@
   },
   "resourceMonitor": {
     "sections": {
-      "enemy": "敌人属性",
-      "team": "队伍属性"
+      "enemy": "敌人属性"
     },
     "modules": {
       "enemyStatus": "敌人状态",
       "stagger": "失衡值",
-      "sp": "技力曲线"
+      "sp": "技力"
     },
     "labels": {
       "enemyHp": "敌人血量",
@@ -1049,11 +1048,16 @@
     "sp": {
       "insufficient": "技力不足"
     },
+    "stagger": {
+      "weak": "失衡"
+    },
     "enemy": {
       "custom": "自定义敌人",
       "unknown": "未知敌人",
       "clickToChange": "点击更换敌人",
       "dialogTitle": "选择敌人",
+      "editStats": "自定义属性",
+      "editStatsTitle": "自定义敌人属性",
       "searchPlaceholder": "搜索敌人...",
       "level": "等级",
       "specialGroup": "特殊",
