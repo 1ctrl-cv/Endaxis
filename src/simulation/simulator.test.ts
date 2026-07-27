@@ -112,6 +112,7 @@ function runScenario(
   options: {
     lmdiAttributionMode?: 'stacks' | 'applier';
     systemConstants?: Record<string, any>;
+    enemyResistance?: import('@/data/enemyResistance').EnemyResistance;
   } = {},
 ) {
   const { timeline, teamConfig, enemyConfig, actors } = compileScenario(createScenario(tracks), {
@@ -124,6 +125,7 @@ function runScenario(
     baseStatsByTrack,
     enemyDef: 100,
     lmdiAttributionMode: options.lmdiAttributionMode,
+    enemyResistance: options.enemyResistance,
   });
 }
 
@@ -1605,6 +1607,155 @@ describe('optimizer-native runtime parity', () => {
       typeKey: 'electrification',
       kind: 'anomaly',
     });
+  });
+
+  it('corrosion reaction damage does not benefit from its own initial res shred', () => {
+    const tracks = [
+      createTrack('alpha', [
+        createAction('cryo', 'battleSkill', {
+          startTime: 0,
+          element: 'cryo',
+          hits: [
+            {
+              offset: 0,
+              multiplier: 100,
+              spRecovery: 0,
+              spReturn: 0,
+              stagger: 0,
+              effects: [{ kind: 'infliction', element: 'cryo', stacks: 1 } as Effect],
+            },
+          ],
+        }),
+      ]),
+      createTrack('beta', [
+        createAction('nature', 'battleSkill', {
+          startTime: 1,
+          element: 'nature',
+          hits: [
+            {
+              offset: 0,
+              multiplier: 100,
+              spRecovery: 0,
+              spReturn: 0,
+              stagger: 0,
+              effects: [{ kind: 'infliction', element: 'nature', stacks: 1 } as Effect],
+            },
+          ],
+        }),
+        createAction('nature-followup', 'battleSkill', {
+          startTime: 1.5,
+          element: 'nature',
+          hits: [
+            {
+              offset: 0,
+              multiplier: 100,
+              spRecovery: 0,
+              spReturn: 0,
+              stagger: 0,
+            },
+          ],
+        }),
+      ]),
+    ];
+    const result = runScenario(tracks, undefined, {
+      enemyResistance: { physical: 0, heat: 0, cryo: 0, electric: 0, nature: 20 },
+    });
+    const corrosionHit = result.simLog.find(
+      entry =>
+        entry.type === 'DAMAGE_HIT' &&
+        entry.payload.hitData?._reactionMeta?.reactionType === 'corrosion',
+    );
+    const followupHit = result.simLog.find(
+      entry =>
+        entry.type === 'DAMAGE_HIT' &&
+        entry.payload.actionId?.includes('nature-followup') &&
+        !entry.payload.hitData?._reactionMeta,
+    );
+    expect(corrosionHit).toBeDefined();
+    const corrosionBreakdown = (corrosionHit as any).payload.hitData._damageBreakdown;
+    expect(corrosionBreakdown?.resistanceShred).toBe(0);
+    expect(corrosionBreakdown?.resistanceShredSources ?? []).toEqual([]);
+    // 20% nature resist, no shred → 0.8
+    expect(corrosionBreakdown?.resMult).toBeCloseTo(0.8, 5);
+
+    // Later hits should still benefit from the applied corrosion shred.
+    expect(followupHit).toBeDefined();
+    const followupBreakdown = (followupHit as any).payload.hitData._damageBreakdown;
+    expect(followupBreakdown?.resistanceShred).toBeGreaterThan(0);
+    expect(followupBreakdown?.resMult).toBeGreaterThan(0.8);
+
+    expect(result.enemyLog).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'CORROSION_TICK', resShred: expect.any(Number) }),
+      ]),
+    );
+  });
+
+  it('corrosion reaction damage ignores corrosion:resShred even if already applied', () => {
+    const tracks = [
+      createTrack('alpha', [
+        createAction('cryo', 'battleSkill', {
+          startTime: 0,
+          element: 'cryo',
+          hits: [
+            {
+              offset: 0,
+              multiplier: 100,
+              spRecovery: 0,
+              spReturn: 0,
+              stagger: 0,
+              effects: [{ kind: 'infliction', element: 'cryo', stacks: 1 } as Effect],
+            },
+          ],
+        }),
+      ]),
+      createTrack('beta', [
+        createAction('nature', 'battleSkill', {
+          startTime: 1,
+          element: 'nature',
+          hits: [
+            {
+              offset: 0,
+              multiplier: 100,
+              spRecovery: 0,
+              spReturn: 0,
+              stagger: 0,
+              effects: [{ kind: 'infliction', element: 'nature', stacks: 1 } as Effect],
+            },
+          ],
+        }),
+      ]),
+    ];
+    const { timeline, teamConfig, enemyConfig, actors } = compileScenario(createScenario(tracks));
+    const baseStatsByTrack = new Map<string, BaseStatValues>(
+      actors.map(actor => [actor.id, BASE_STATS]),
+    );
+    const result = simulate(timeline, teamConfig, enemyConfig, actors, undefined, undefined, {
+      baseStatsByTrack,
+      enemyDef: 100,
+      enemyResistance: { physical: 0, heat: 0, cryo: 0, electric: 0, nature: 20 },
+      initialEnemyState: {
+        statuses: [
+          {
+            id: 'corrosion:resShred',
+            stat: { modifier: 'resistanceShred' },
+            value: 12,
+            stacks: 1,
+            maxStacks: 1,
+            remainingDuration: 99,
+            sourceId: 'alpha',
+          },
+        ],
+      },
+    });
+    const corrosionHit = result.simLog.find(
+      entry =>
+        entry.type === 'DAMAGE_HIT' &&
+        entry.payload.hitData?._reactionMeta?.reactionType === 'corrosion',
+    );
+    expect(corrosionHit).toBeDefined();
+    expect((corrosionHit as any).payload.hitData._damageBreakdown?.resistanceShred).toBe(0);
+    expect((corrosionHit as any).payload.hitData._damageBreakdown?.resMult).toBeCloseTo(0.8, 5);
   });
 
   it('runs physical vulnerability stack, consume, reaction damage, and enemy projection', () => {

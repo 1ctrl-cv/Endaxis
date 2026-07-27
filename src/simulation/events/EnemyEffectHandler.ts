@@ -1139,9 +1139,8 @@ export class EnemyEffectHandler implements EventHandler<EnemyEffectEvents> {
     );
     ctx.state.enemy.expireStatus('corrosion:resShred');
 
-    // Initial res shred at priority 0, enqueued here *before* the reaction DAMAGE_HIT (also p0)
-    // so corrosion damage already sees the shred. Hot-work (onStatusApplied after emit) still
-    // lands after that DAMAGE_HIT and does not buff this hit.
+    // Apply initial res shred at priority 1 (after the reaction DAMAGE_HIT at p0), matching
+    // electrification:dmgTaken — corrosion damage must not benefit from its own initial shred.
     ctx.queue.enqueue(
       {
         type: 'ENEMY_EFFECT_APPLY',
@@ -1159,7 +1158,7 @@ export class EnemyEffectHandler implements EventHandler<EnemyEffectEvents> {
         effect: { kind: 'status', id: 'corrosion:resShred', name: 'corrosion', hide: true } as any,
         sourceBreakdown: computeSourceBreakdown(sourceId, consumedStackSources, level),
       },
-      0,
+      1,
     );
 
     // Log initial corrosion tick (bare initial shred; ramp starts at +1s)

@@ -268,8 +268,15 @@ export class HitHandler implements EventHandler<HitEvent> {
         // damage) must still see sibling debuffs that share the expiry time.
         entry => e.time <= entry.expiresAt,
       );
+      // Corrosion reaction damage must not benefit from its own initial res shred.
+      // Event priority alone is not enough: same-timestamp beforeDamage flushes can
+      // settle `corrosion:resShred` before this DAMAGE_HIT is processed.
+      const enemyEntriesForDamage =
+        reactionMeta.reactionType === 'corrosion'
+          ? enemyEntries.filter(entry => entry.id !== 'corrosion:resShred')
+          : enemyEntries;
       const enemyMods: ResolvedStatModifier[] = [];
-      for (const entry of enemyEntries) {
+      for (const entry of enemyEntriesForDamage) {
         if (!entry.stat) continue;
         enemyMods.push({
           stat: entry.stat,
@@ -313,7 +320,7 @@ export class HitHandler implements EventHandler<HitEvent> {
       const isCombustionDot = reactionMeta.reactionType === 'combustion_dot';
       const noCrit = hit._canCrit === false || isCombustionDot;
 
-      const enemySources = collectEnemyHitModifierSources(enemyEntries, element);
+      const enemySources = collectEnemyHitModifierSources(enemyEntriesForDamage, element);
       const reactionHitParams = {
         attack: operatorStatus.attack,
         multiplier: resolvedMultiplier,
@@ -380,7 +387,7 @@ export class HitHandler implements EventHandler<HitEvent> {
       const selfEnemyMods: ResolvedStatModifier[] = [];
       const extEnemyMods: SourceTaggedMod[] = [];
       const creditToApplier = ctx.lmdiAttributionMode === 'applier';
-      for (const entry of enemyEntries) {
+      for (const entry of enemyEntriesForDamage) {
         if (!entry.stat) continue;
         const totalValue = entry.value * entry.stacks;
         if (!creditToApplier && entry.sourceBreakdown) {

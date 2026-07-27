@@ -34,15 +34,6 @@ const sheet: WeaponSheet = {
         value: [20, 24, 28, 32, 36, 40, 44, 48, 56],
         condition: { kind: 'enemyStatus', status: 'vulnerability' },
       },
-      {
-        kind: 'status',
-        stat: {
-          modifier: 'attributePercent',
-          attribute: ['strength', 'agility', 'intellect', 'will'],
-        },
-        target: 'self',
-        value: [8, 9.6, 11.2, 12.8, 14.4, 16, 17.6, 19.2, 22.4],
-      },
     ],
     triggers: [
       {
@@ -50,9 +41,11 @@ const sheet: WeaponSheet = {
           kind: 'onStatusApplied',
           status: 'vulnerability',
           target: 'enemy',
+          skillTypes: 'battleSkill',
         },
         effects: [
           {
+            id: 'mountain-bearer-attr-on-vulnerability',
             kind: 'status',
             stat: {
               modifier: 'attributePercent',
@@ -61,6 +54,7 @@ const sheet: WeaponSheet = {
             target: 'self',
             value: [8, 9.6, 11.2, 12.8, 14.4, 16, 17.6, 19.2, 22.4],
             duration: 15,
+            maxStacks: 1,
           },
         ],
       },
@@ -69,9 +63,11 @@ const sheet: WeaponSheet = {
           kind: 'onStatusApplied',
           status: { modifier: 'susceptibility', elements: 'physical' },
           target: 'enemy',
+          skillTypes: 'battleSkill',
         },
         effects: [
           {
+            id: 'mountain-bearer-attr-on-phys-susceptibility',
             kind: 'status',
             stat: {
               modifier: 'attributePercent',
@@ -80,6 +76,7 @@ const sheet: WeaponSheet = {
             target: 'self',
             value: [8, 9.6, 11.2, 12.8, 14.4, 16, 17.6, 19.2, 22.4],
             duration: 15,
+            maxStacks: 1,
           },
         ],
       },

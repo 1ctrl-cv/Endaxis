@@ -499,7 +499,6 @@ const sheet: OperatorSheet = {
                   effects: [
                     GAIN_MELTING_FLAME_EFFECT,
                     { kind: 'ultEnergyGain', value: 25 },
-                    { kind: 'ultEnergyGain', value: 10 },
                   ],
                 },
               ],
