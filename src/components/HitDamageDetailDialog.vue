@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { ArrowRight } from '@element-plus/icons-vue';
 import { getGameElementName } from '@/data/gameText';
 import { translateEffectName } from '@/editor/hits/statusOptions';
 import { resolveDamageBonusSourceLabel } from '@/utils/damageBonusSourceLabel';
@@ -392,8 +393,10 @@ function onClose() {
             @click="atkDetail ? (atkOpen = !atkOpen) : null"
           >
             <td class="label-cell">
+              <el-icon v-if="atkDetail" class="expand-icon" :class="{ 'is-open': atkOpen }"
+                ><ArrowRight
+              /></el-icon>
               {{ t('hitDetail.attack') }}
-              <span v-if="atkDetail" class="expand-icon">{{ atkOpen ? 'v' : '>' }}</span>
             </td>
             <td class="value-cell">{{ num(breakdown.attack) }}</td>
           </tr>
@@ -585,9 +588,18 @@ function onClose() {
   background: transparent;
 }
 .expand-icon {
-  font-size: 11px;
-  margin-left: 4px;
+  margin-right: 4px;
+  vertical-align: -2px;
   color: #888;
+  font-size: 12px;
+  transition: transform 0.18s ease, color 0.18s ease;
+}
+.expand-icon.is-open {
+  transform: rotate(90deg);
+  color: #bbb;
+}
+.expandable-row:hover .expand-icon {
+  color: #bbb;
 }
 .sub-row {
   border-bottom-color: rgba(255, 255, 255, 0.03) !important;

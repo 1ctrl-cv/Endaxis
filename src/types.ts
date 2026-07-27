@@ -1,7 +1,7 @@
 import type { ScopedDamageModifier } from './data/stats/types';
-import type { StatSourceEntry } from './data/stats/types';
+import type { StatSourceEntry, AttributeSourceEntry } from './data/stats/types';
 
-export type { StatSourceEntry };
+export type { StatSourceEntry, AttributeSourceEntry };
 
 // ─── Operators ───────────────────────────────────────────────────────────────
 
@@ -104,6 +104,13 @@ export interface OperatorStatus {
     agility: number;
     intellect: number;
     will: number;
+  };
+  /** Per-attribute named contributions for expandable source details. */
+  attributeSources: {
+    strength: AttributeSourceEntry[];
+    agility: AttributeSourceEntry[];
+    intellect: AttributeSourceEntry[];
+    will: AttributeSourceEntry[];
   };
 
   // Main/sub attribute metadata

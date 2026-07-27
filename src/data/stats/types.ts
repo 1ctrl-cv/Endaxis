@@ -78,6 +78,17 @@ export interface StatSourceEntry {
   value: number;
 }
 
+/**
+ * A named contribution to an operator attribute (力量 / 敏捷 / …).
+ * `kind` selects how `value` is displayed and how it entered the formula.
+ */
+export interface AttributeSourceEntry {
+  label: string;
+  /** Flat points, percent decimal (0.08 = +8%), or external factor (e.g. 1.1). */
+  value: number;
+  kind: 'base' | 'flat' | 'percent' | 'external';
+}
+
 // ─── Scoped damage modifier ────────────────────────────────────────────────
 
 /**

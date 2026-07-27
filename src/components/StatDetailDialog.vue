@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { ArrowRight } from '@element-plus/icons-vue';
 import { STAT_SOURCE_BASE_LABEL } from '@/data/stats/computeStats';
 import { resolveDamageBonusSourceLabel } from '@/utils/damageBonusSourceLabel';
 
@@ -21,6 +22,12 @@ const critDmgOpen = ref(false);
 const artsOpen = ref(false);
 const ultEffOpen = ref(false);
 const comboCdOpen = ref(false);
+const attrOpen = ref({
+  strength: false,
+  agility: false,
+  intellect: false,
+  will: false,
+});
 
 const ATTR_KEYS = ['strength', 'agility', 'intellect', 'will'];
 
@@ -44,6 +51,26 @@ function resolveSourceLabel(raw) {
   const label = String(raw || '').trim();
   if (!label || label === STAT_SOURCE_BASE_LABEL) return t('statDetail.baseSource');
   return resolveDamageBonusSourceLabel(label, t, te, locale.value) || label;
+}
+
+function formatAttributeSourceValue(src) {
+  const value = Number(src.value) || 0;
+  if (src.kind === 'percent') return pct(value);
+  if (src.kind === 'external') return `×${value.toFixed(3)}`;
+  if (src.kind === 'flat') return `+${num(value)}`;
+  return num(value);
+}
+
+function toggleAttrOpen(key) {
+  attrOpen.value[key] = !attrOpen.value[key];
+}
+
+function attributeSourcesFor(key) {
+  return props.operatorStatus?.attributeSources?.[key] ?? [];
+}
+
+function hasAttributeSources(key) {
+  return attributeSourcesFor(key).length > 0;
 }
 
 const baseAtkTotal = computed(() => {
@@ -115,6 +142,7 @@ function onClose() {
   artsOpen.value = false;
   ultEffOpen.value = false;
   comboCdOpen.value = false;
+  attrOpen.value = { strength: false, agility: false, intellect: false, will: false };
   emit('update:visible', false);
 }
 </script>
@@ -133,31 +161,59 @@ function onClose() {
       <div class="section-label">{{ t('statDetail.attributes') }}</div>
       <table class="stat-table">
         <tbody>
-          <tr
-            v-for="key in ATTR_KEYS"
-            :key="key"
-            :class="{
-              'is-main': key === attrKey(operatorStatus.mainAttributeName),
-              'is-sub': key === attrKey(operatorStatus.secondaryAttributeName),
-            }"
-          >
-            <td class="label-cell">
-              {{ attrLabel(key) }}
-              <span
-                v-if="key === attrKey(operatorStatus.mainAttributeName)"
-                class="attr-badge main-badge"
+          <template v-for="key in ATTR_KEYS" :key="key">
+            <tr
+              class="expandable-row"
+              :class="{
+                'is-main': key === attrKey(operatorStatus.mainAttributeName),
+                'is-sub': key === attrKey(operatorStatus.secondaryAttributeName),
+                'is-disabled': !hasAttributeSources(key),
+              }"
+              @click="hasAttributeSources(key) ? toggleAttrOpen(key) : null"
+            >
+              <td class="label-cell">
+                <el-icon
+                  v-if="hasAttributeSources(key)"
+                  class="expand-icon"
+                  :class="{ 'is-open': attrOpen[key] }"
+                  ><ArrowRight
+                /></el-icon>
+                {{ attrLabel(key) }}
+                <span
+                  v-if="key === attrKey(operatorStatus.mainAttributeName)"
+                  class="attr-badge main-badge"
+                >
+                  {{ t('statDetail.main') }}
+                </span>
+                <span
+                  v-if="key === attrKey(operatorStatus.secondaryAttributeName)"
+                  class="attr-badge sub-badge"
+                >
+                  {{ t('statDetail.sub') }}
+                </span>
+              </td>
+              <td class="value-cell">{{ num(operatorStatus.attributes?.[key]) }}</td>
+            </tr>
+            <template v-if="attrOpen[key]">
+              <tr
+                v-for="(src, idx) in attributeSourcesFor(key)"
+                :key="`${key}-src-${idx}`"
+                class="sub-row dim"
+                :class="{
+                  'is-main': key === attrKey(operatorStatus.mainAttributeName),
+                  'is-sub': key === attrKey(operatorStatus.secondaryAttributeName),
+                }"
               >
-                {{ t('statDetail.main') }}
-              </span>
-              <span
-                v-if="key === attrKey(operatorStatus.secondaryAttributeName)"
-                class="attr-badge sub-badge"
-              >
-                {{ t('statDetail.sub') }}
-              </span>
-            </td>
-            <td class="value-cell">{{ num(operatorStatus.attributes?.[key]) }}</td>
-          </tr>
+                <td class="label-cell indent-1">
+                  <template v-if="src.kind === 'base'">{{ resolveSourceLabel(src.label) }}</template>
+                  <template v-else>{{
+                    t('statDetail.fromSource', { name: resolveSourceLabel(src.label) })
+                  }}</template>
+                </td>
+                <td class="value-cell">{{ formatAttributeSourceValue(src) }}</td>
+              </tr>
+            </template>
+          </template>
         </tbody>
       </table>
 
@@ -166,8 +222,8 @@ function onClose() {
         <tbody>
           <tr class="expandable-row" @click="atkOpen = !atkOpen">
             <td class="label-cell bold">
+              <el-icon class="expand-icon" :class="{ 'is-open': atkOpen }"><ArrowRight /></el-icon>
               {{ t('stats.attack') }}
-              <span class="expand-icon">{{ atkOpen ? 'v' : '>' }}</span>
             </td>
             <td class="value-cell bold">{{ num(operatorStatus.attack) }}</td>
           </tr>
@@ -238,8 +294,8 @@ function onClose() {
 
           <tr class="expandable-row" @click="hpOpen = !hpOpen">
             <td class="label-cell bold">
+              <el-icon class="expand-icon" :class="{ 'is-open': hpOpen }"><ArrowRight /></el-icon>
               {{ t('stats.hp') }}
-              <span class="expand-icon">{{ hpOpen ? 'v' : '>' }}</span>
             </td>
             <td class="value-cell bold">{{ num(operatorStatus.health) }}</td>
           </tr>
@@ -284,8 +340,8 @@ function onClose() {
 
           <tr class="expandable-row" @click="critRateOpen = !critRateOpen">
             <td class="label-cell">
+              <el-icon class="expand-icon" :class="{ 'is-open': critRateOpen }"><ArrowRight /></el-icon>
               {{ t('stats.crit_rate') }}
-              <span class="expand-icon">{{ critRateOpen ? 'v' : '>' }}</span>
             </td>
             <td class="value-cell">{{ pct(operatorStatus.critRate) }}</td>
           </tr>
@@ -304,8 +360,8 @@ function onClose() {
 
           <tr class="expandable-row" @click="critDmgOpen = !critDmgOpen">
             <td class="label-cell">
+              <el-icon class="expand-icon" :class="{ 'is-open': critDmgOpen }"><ArrowRight /></el-icon>
               {{ t('stats.crit_dmg') }}
-              <span class="expand-icon">{{ critDmgOpen ? 'v' : '>' }}</span>
             </td>
             <td class="value-cell">{{ pct(operatorStatus.critDmg) }}</td>
           </tr>
@@ -324,8 +380,8 @@ function onClose() {
 
           <tr class="expandable-row" @click="artsOpen = !artsOpen">
             <td class="label-cell">
+              <el-icon class="expand-icon" :class="{ 'is-open': artsOpen }"><ArrowRight /></el-icon>
               {{ t('stats.originium_arts_power') }}
-              <span class="expand-icon">{{ artsOpen ? 'v' : '>' }}</span>
             </td>
             <td class="value-cell">{{ num(operatorStatus.artsIntensity) }}</td>
           </tr>
@@ -351,8 +407,8 @@ function onClose() {
 
           <tr class="expandable-row" @click="ultEffOpen = !ultEffOpen">
             <td class="label-cell">
+              <el-icon class="expand-icon" :class="{ 'is-open': ultEffOpen }"><ArrowRight /></el-icon>
               {{ t('stats.ult_charge_eff') }}
-              <span class="expand-icon">{{ ultEffOpen ? 'v' : '>' }}</span>
             </td>
             <td class="value-cell">
               {{ pct(1 + (Number(operatorStatus.ultimateGainEfficiency) || 0) / 100) }}
@@ -384,11 +440,12 @@ function onClose() {
             @click="hasComboCdSources || comboCdReductionDisplay !== 0 ? (comboCdOpen = !comboCdOpen) : null"
           >
             <td class="label-cell">
-              {{ t('statDetail.comboCdReduction') }}
-              <span
+              <el-icon
                 v-if="hasComboCdSources || comboCdReductionDisplay !== 0"
                 class="expand-icon"
-              >{{ comboCdOpen ? 'v' : '>' }}</span>
+                :class="{ 'is-open': comboCdOpen }"
+              ><ArrowRight /></el-icon>
+              {{ t('statDetail.comboCdReduction') }}
             </td>
             <td class="value-cell">{{ comboCdReductionDisplay.toFixed(1) }}%</td>
           </tr>
@@ -508,9 +565,20 @@ function onClose() {
 }
 
 .expand-icon {
-  font-size: 11px;
-  margin-left: 4px;
+  margin-right: 4px;
+  vertical-align: -2px;
   color: #888;
+  font-size: 12px;
+  transition: transform 0.18s ease, color 0.18s ease;
+}
+
+.expand-icon.is-open {
+  transform: rotate(90deg);
+  color: #bbb;
+}
+
+.expandable-row:hover .expand-icon {
+  color: #bbb;
 }
 
 .attr-badge {

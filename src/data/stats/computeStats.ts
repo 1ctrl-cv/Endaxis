@@ -6,12 +6,15 @@ import type {
   ResolvedStatModifier,
   ScopedDamageModifier,
   StatSourceEntry,
+  AttributeSourceEntry,
 } from './types';
 import { ATTR_MAP } from './baseValues';
 import { computeScalingBasis } from './scaling';
 
 /** Intrinsic baseline label — StatDetailDialog translates via statDetail.baseSource. */
 export const STAT_SOURCE_BASE_LABEL = '__base__';
+
+const ATTR_KEYS = ['strength', 'agility', 'intellect', 'will'] as const;
 
 function pushStatSource(
   list: StatSourceEntry[],
@@ -21,6 +24,31 @@ function pushStatSource(
   if (!Number.isFinite(value) || value === 0) return;
   const name = typeof label === 'string' && label.trim() ? label.trim() : STAT_SOURCE_BASE_LABEL;
   list.push({ label: name, value });
+}
+
+function pushAttributeSource(
+  list: AttributeSourceEntry[],
+  label: string | undefined,
+  value: number,
+  kind: AttributeSourceEntry['kind'],
+): void {
+  if (!Number.isFinite(value) || value === 0) return;
+  const name = typeof label === 'string' && label.trim() ? label.trim() : STAT_SOURCE_BASE_LABEL;
+  list.push({ label: name, value, kind });
+}
+
+function resolveAttrKey(
+  raw: string,
+  mainAttributeName: string,
+  secondaryAttributeName: string,
+): keyof Attributes | null {
+  const mapped =
+    raw === 'main'
+      ? ATTR_MAP[mainAttributeName]
+      : raw === 'sub'
+        ? ATTR_MAP[secondaryAttributeName]
+        : ATTR_MAP[raw];
+  return mapped ?? null;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -63,6 +91,44 @@ export function computeStats(
   const attrPercent: Attributes = { strength: 0, agility: 0, intellect: 0, will: 0 };
   const attrExternalMult: Attributes = { strength: 1, agility: 1, intellect: 1, will: 1 };
   const resolvedValues = new Map<string, number>();
+  const attributeSources: Record<(typeof ATTR_KEYS)[number], AttributeSourceEntry[]> = {
+    strength: [],
+    agility: [],
+    intellect: [],
+    will: [],
+  };
+
+  for (const key of ATTR_KEYS) {
+    pushAttributeSource(attributeSources[key], STAT_SOURCE_BASE_LABEL, base.baseAttrs[key], 'base');
+  }
+
+  const applyAttributeModifier = (
+    modifier: string,
+    val: number,
+    attributeField: string | string[],
+    external: boolean | undefined,
+    sourceLabel: string | undefined,
+  ) => {
+    const attributes = Array.isArray(attributeField) ? attributeField : [attributeField];
+    for (const raw of attributes) {
+      const key = resolveAttrKey(String(raw), mainAttributeName, secondaryAttributeName);
+      if (!key) continue;
+      if (modifier === 'attributePercent') {
+        if (external) {
+          const factor = 1 + val / 100;
+          attrExternalMult[key] *= factor;
+          pushAttributeSource(attributeSources[key], sourceLabel, factor, 'external');
+        } else {
+          const pct = val / 100;
+          attrPercent[key] += pct;
+          pushAttributeSource(attributeSources[key], sourceLabel, pct, 'percent');
+        }
+      } else {
+        attrs[key] += val;
+        pushAttributeSource(attributeSources[key], sourceLabel, val, 'flat');
+      }
+    }
+  };
 
   // Sheet attribute effects
   for (const effect of sheetEffects) {
@@ -70,19 +136,13 @@ export function computeStats(
     if (modifier === 'attributeFlat' || modifier === 'attributePercent') {
       const val = getEffectValue(effect);
       const attrStat = effect.stat as { modifier: typeof modifier; attribute: string | string[] };
-      const attributes = Array.isArray(attrStat.attribute)
-        ? attrStat.attribute
-        : [attrStat.attribute];
-      if (modifier === 'attributePercent') {
-        if (effect.external) {
-          for (const attr of attributes)
-            attrExternalMult[attr as keyof Attributes] *= 1 + val / 100;
-        } else {
-          for (const attr of attributes) attrPercent[attr as keyof Attributes] += val / 100;
-        }
-      } else {
-        for (const attr of attributes) attrs[attr as keyof Attributes] += val;
-      }
+      applyAttributeModifier(
+        modifier,
+        val,
+        attrStat.attribute,
+        effect.external,
+        effect.name || effect.id,
+      );
       if (effect.id) resolvedValues.set(effect.id, val);
     }
   }
@@ -92,25 +152,19 @@ export function computeStats(
     const { modifier } = mod.stat;
     if (modifier === 'attributeFlat' || modifier === 'attributePercent') {
       const attrStat = mod.stat as { modifier: typeof modifier; attribute: string | string[] };
-      const attributes = Array.isArray(attrStat.attribute)
-        ? attrStat.attribute
-        : [attrStat.attribute];
-      if (modifier === 'attributePercent') {
-        if (mod.external) {
-          for (const attr of attributes)
-            attrExternalMult[attr as keyof Attributes] *= 1 + mod.value / 100;
-        } else {
-          for (const attr of attributes) attrPercent[attr as keyof Attributes] += mod.value / 100;
-        }
-      } else {
-        for (const attr of attributes) attrs[attr as keyof Attributes] += mod.value;
-      }
+      applyAttributeModifier(
+        modifier,
+        mod.value,
+        attrStat.attribute,
+        mod.external,
+        mod.sourceLabel || mod.effectId,
+      );
     }
   }
 
   // Apply attribute bonuses: final = total * (1 + Σpct) * Π external, then floor.
   // External multipliers are applied last so they act as a final multiplier on the attribute.
-  for (const key of ['strength', 'agility', 'intellect', 'will'] as const) {
+  for (const key of ATTR_KEYS) {
     if (attrPercent[key] !== 0) {
       attrs[key] = attrs[key] * (1 + attrPercent[key]);
     }
@@ -474,6 +528,7 @@ export function computeStats(
     artsIntensity,
     ultimateGainEfficiency,
     attributes: attrs,
+    attributeSources,
     mainAttributeName,
     secondaryAttributeName,
     mainAttribute,
