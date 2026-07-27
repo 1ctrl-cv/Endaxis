@@ -23,6 +23,9 @@ interface RawEntry {
   multiplierScaling?: HitGroup['multiplierScaling'];
   treatAsSkillType?: HitGroup['treatAsSkillType'];
   hitFraction?: number;
+  /** Hit-level skill identity (hit `id` > hitgroup `id`) for `skillId`-scoped modifier matching.
+   *  The segment/action fallback is applied downstream (segment payload / compileTimeline). */
+  skillId?: string;
 }
 
 /**
@@ -188,8 +191,10 @@ function normalizeEffectsForCompare(effects: unknown): unknown {
 
 function authoringValuesEqual(key: string, left: unknown, right: unknown): boolean {
   if (key === 'effects') {
-    return stableSerialize(normalizeEffectsForCompare(left)) ===
-      stableSerialize(normalizeEffectsForCompare(right));
+    return (
+      stableSerialize(normalizeEffectsForCompare(left)) ===
+      stableSerialize(normalizeEffectsForCompare(right))
+    );
   }
   if (typeof left === 'number' || typeof right === 'number') {
     return Number(left) === Number(right);
@@ -232,10 +237,7 @@ function applySheetBaseline(hit: Dict, sheetHit: Dict): Dict {
   return hit;
 }
 
-function takeStoredHitMatch(
-  unusedStored: Dict[],
-  rawHit: Dict | undefined,
-): Dict | undefined {
+function takeStoredHitMatch(unusedStored: Dict[], rawHit: Dict | undefined): Dict | undefined {
   if (!unusedStored.length || !rawHit) return undefined;
 
   const rawId = typeof rawHit.id === 'string' && rawHit.id ? rawHit.id : null;
@@ -266,6 +268,7 @@ function mergeStoredHitWithSheetEntry(
   const sheetMultiplier = resolveMultiplierFromEntry(rawEntry, level);
   const sheetHit: Dict = {
     id: rawHit.id,
+    ...(rawEntry.skillId ? { skillId: rawEntry.skillId } : {}),
     offset: Number(rawHit.offset) || 0,
     spRecovery: Number(rlv(rawHit.spRecovery, level)) || 0,
     spReturn: Number(rlv(rawHit.spReturn, level)) || 0,
@@ -314,16 +317,10 @@ function mergeStoredHitWithSheetEntry(
     Number(pickAuthoringField('spRecovery', stored, baseline, sheetHit.spRecovery)) || 0;
   nextHit.spReturn =
     Number(pickAuthoringField('spReturn', stored, baseline, sheetHit.spReturn)) || 0;
-  nextHit.stagger =
-    Number(pickAuthoringField('stagger', stored, baseline, sheetHit.stagger)) || 0;
+  nextHit.stagger = Number(pickAuthoringField('stagger', stored, baseline, sheetHit.stagger)) || 0;
   nextHit.element = pickAuthoringField('element', stored, baseline, sheetHit.element);
 
-  const pickedMultiplier = pickAuthoringField(
-    'multiplier',
-    stored,
-    baseline,
-    sheetHit.multiplier,
-  );
+  const pickedMultiplier = pickAuthoringField('multiplier', stored, baseline, sheetHit.multiplier);
   if (pickedMultiplier === sheetHit.multiplier) {
     Object.assign(nextHit, sheetMultiplier);
   } else {
@@ -348,12 +345,7 @@ function mergeStoredHitWithSheetEntry(
   else nextHit.durationExtension = Number(rlv(pickedDurationExtension, level)) || 0;
 
   if (preserveCondition) {
-    const pickedCondition = pickAuthoringField(
-      '_condition',
-      stored,
-      baseline,
-      sheetHit._condition,
-    );
+    const pickedCondition = pickAuthoringField('_condition', stored, baseline, sheetHit._condition);
     if (pickedCondition === undefined) delete nextHit._condition;
     else nextHit._condition = pickedCondition;
   } else {
@@ -433,6 +425,7 @@ export function resolveHitsFromSheet(
 
     const nextHit: Dict = {
       ...(rawHit.id ? { id: rawHit.id } : {}),
+      ...(rawEntry.skillId ? { skillId: rawEntry.skillId } : {}),
       offset: Number(rawHit.offset) || 0,
       spRecovery: Number(rlv(rawHit.spRecovery, level)) || 0,
       spReturn: Number(rlv(rawHit.spReturn, level)) || 0,
@@ -496,6 +489,8 @@ export function extractRawEntries(
       multiplierScaling: group.multiplierScaling,
       treatAsSkillType: 'treatAsSkillType' in group ? group.treatAsSkillType : undefined,
       hitFraction: (Number(hit?.weight) || 1) / totalWeight,
+      // Hit-level skill identity for `skillId`-scoped modifiers: hit `id` > hitgroup `id`.
+      skillId: hit?.id ?? ('id' in group ? group.id : undefined),
     }));
   });
 }
@@ -549,7 +544,10 @@ export function buildResolvedSegmentPayload(
     aggregateHits.push(
       ...hits.map(hit => ({
         ...hit,
-        ...(segmentSkillId ? { skillId: segmentSkillId } : {}),
+        // segment skillId is a fallback only — a hit/hitgroup id already on the hit takes priority.
+        ...(!(hit as { skillId?: string }).skillId && segmentSkillId
+          ? { skillId: segmentSkillId }
+          : {}),
         offset: (Number(hit.offset) || 0) + cursor,
       })),
     );
@@ -562,7 +560,12 @@ export function buildResolvedSegmentPayload(
       ...(segment?.requisites ? { requisites: segment.requisites } : {}),
       ...(segment?.spCost != null ? { spCost: Number(segment.spCost) || 0 } : {}),
       payload: {
-        hits: segmentSkillId ? hits.map(hit => ({ ...hit, skillId: segmentSkillId })) : hits,
+        // segment skillId is a fallback only — a hit/hitgroup id already on the hit takes priority.
+        hits: segmentSkillId
+          ? hits.map(hit =>
+              (hit as { skillId?: string }).skillId ? hit : { ...hit, skillId: segmentSkillId },
+            )
+          : hits,
       },
       element: segmentElement || aggregateElement || skill?.element || 'physical',
     });
