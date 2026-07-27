@@ -302,7 +302,6 @@ function openItemEditor(slot) {
         </div>
         <div v-for="bonus in activeSetBonuses" :key="bonus.setSlug" class="gear-set-bonus-entry">
           <div class="gear-set-bonus-head">
-            <span class="gear-set-bonus-dot"></span>
             <span class="gear-set-bonus-name">{{ bonus.setName }}</span>
             <span class="gear-set-bonus-count">
               {{
@@ -403,23 +402,20 @@ function openItemEditor(slot) {
   min-width: 0;
 }
 
-.gear-set-bonus-dot {
-  display: none;
-}
-
 .gear-set-bonus-name {
   min-width: 0;
-  color: #f0f0f0;
+  color: #2dd4bf;
   font-size: 14px;
   font-weight: 800;
 }
 
 .gear-set-bonus-count {
   margin-left: auto;
-  color: #aaa;
+  color: #2dd4bf;
   font-family: 'Roboto Mono', monospace;
   font-size: 12px;
   white-space: nowrap;
+  opacity: 0.85;
 }
 
 .gear-set-bonus-desc {

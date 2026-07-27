@@ -1,9 +1,10 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { getOperator, getOperatorTalentGroups } from '@/data';
 import GameRichTextRenderer from '@/components/GameRichTextRenderer.vue';
 import OperatorSkillTooltip from '@/components/armory/OperatorSkillTooltip.vue';
+import EditOperatorBaseStatsPanel from '@/components/armory/EditOperatorBaseStatsPanel.vue';
 import {
   getGameAttributeName,
   getGameClassName,
@@ -48,6 +49,7 @@ const emit = defineEmits(['update:visible']);
 
 const operatorStore = useOperatorStore();
 const { t, locale } = useI18n();
+const baseStatsPanelVisible = ref(false);
 
 const op = computed(() => (props.instance ? getOperator(props.instance.operatorSlug) : null));
 const color = computed(() =>
@@ -296,7 +298,7 @@ function promotedLabel() {
               <span class="level-num">{{ instance.level }}</span>
               <span class="level-text">{{ t('armory.common.level') }}</span>
             </div>
-            <div class="row">
+            <div class="row row-actions">
               <button
                 class="ea-btn ea-btn--sm ea-btn--glass-rect"
                 :disabled="!canPromote"
@@ -304,6 +306,17 @@ function promotedLabel() {
                 @click="update({ promoted: !instance.promoted })"
               >
                 {{ promotedLabel() }}
+              </button>
+              <button
+                class="ea-btn ea-btn--sm ea-btn--glass-rect"
+                type="button"
+                @click="baseStatsPanelVisible = true"
+              >
+                {{ t('armory.baseStats.open') }}
+                <span
+                  v-if="instance.baseStatOverrides && Object.keys(instance.baseStatOverrides).length"
+                  class="override-dot"
+                />
               </button>
             </div>
             <div class="row">
@@ -528,6 +541,12 @@ function promotedLabel() {
       </div>
     </template>
   </el-dialog>
+
+  <EditOperatorBaseStatsPanel
+    v-if="instance"
+    :instance="instance"
+    v-model:visible="baseStatsPanelVisible"
+  />
 </template>
 
 <style scoped>
@@ -625,6 +644,18 @@ function promotedLabel() {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+.row-actions {
+  flex-wrap: wrap;
+}
+.override-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ffc400;
+  margin-left: 6px;
+  vertical-align: middle;
 }
 .section-label {
   font-size: 11px;

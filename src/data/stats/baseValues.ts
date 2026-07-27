@@ -89,13 +89,44 @@ export function getBaseStatValues(
   const weaponLevelIdx = wInst ? (LEVEL_INDEX[wInst.level] ?? 5) : 0;
   const weaponAtk = weaponData?.baseAtk[weaponLevelIdx] ?? 0;
 
+  const overrides = opInst.baseStatOverrides;
+  if (overrides) {
+    if (overrides.strength != null) baseAttrs.strength = Number(overrides.strength) || 0;
+    if (overrides.agility != null) baseAttrs.agility = Number(overrides.agility) || 0;
+    if (overrides.intellect != null) baseAttrs.intellect = Number(overrides.intellect) || 0;
+    if (overrides.will != null) baseAttrs.will = Number(overrides.will) || 0;
+  }
+
+  const resolvedBaseAtk =
+    overrides?.baseAtk != null ? Number(overrides.baseAtk) || 0 : baseAtk;
+  const resolvedBaseHp = overrides?.baseHp != null ? Number(overrides.baseHp) || 0 : baseHp;
+
+  const intrinsicOverrides =
+    overrides &&
+    (overrides.critRate != null ||
+      overrides.critDmg != null ||
+      overrides.artsIntensity != null ||
+      overrides.ultimateGainEfficiency != null ||
+      overrides.defense != null ||
+      overrides.comboCdReductionPercent != null)
+      ? {
+          critRate: overrides.critRate,
+          critDmg: overrides.critDmg,
+          artsIntensity: overrides.artsIntensity,
+          ultimateGainEfficiency: overrides.ultimateGainEfficiency,
+          defense: overrides.defense,
+          comboCdReductionPercent: overrides.comboCdReductionPercent,
+        }
+      : undefined;
+
   return {
     level: opInst.level,
-    baseAtk,
-    baseHp,
+    baseAtk: resolvedBaseAtk,
+    baseHp: resolvedBaseHp,
     weaponAtk,
     baseAttrs,
     mainAttributeName,
     secondaryAttributeName,
+    intrinsicOverrides,
   };
 }

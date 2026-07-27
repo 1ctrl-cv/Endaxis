@@ -434,17 +434,9 @@ function onClose() {
             </tr>
           </template>
 
-          <tr
-            class="expandable-row"
-            :class="{ 'is-disabled': !hasComboCdSources && comboCdReductionDisplay === 0 }"
-            @click="hasComboCdSources || comboCdReductionDisplay !== 0 ? (comboCdOpen = !comboCdOpen) : null"
-          >
+          <tr class="expandable-row" @click="comboCdOpen = !comboCdOpen">
             <td class="label-cell">
-              <el-icon
-                v-if="hasComboCdSources || comboCdReductionDisplay !== 0"
-                class="expand-icon"
-                :class="{ 'is-open': comboCdOpen }"
-              ><ArrowRight /></el-icon>
+              <el-icon class="expand-icon" :class="{ 'is-open': comboCdOpen }"><ArrowRight /></el-icon>
               {{ t('statDetail.comboCdReduction') }}
             </td>
             <td class="value-cell">{{ comboCdReductionDisplay.toFixed(1) }}%</td>
@@ -469,6 +461,10 @@ function onClose() {
                 {{ t('statDetail.fromSource', { name: resolveSourceLabel(src.label) }) }}
               </td>
               <td class="value-cell">−{{ Number(src.value).toFixed(1) }}s</td>
+            </tr>
+            <tr v-if="!hasComboCdSources" class="sub-row dim">
+              <td class="label-cell indent-1">{{ t('statDetail.noSources') }}</td>
+              <td class="value-cell">—</td>
             </tr>
           </template>
         </tbody>

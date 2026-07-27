@@ -17,6 +17,27 @@ export interface OperatorListEntry {
 
 export type OperatorLevel = 1 | 20 | 40 | 60 | 80 | 90;
 
+/** Absolute overrides for sheet/intrinsic baselines on an operator instance. */
+export interface OperatorBaseStatOverrides {
+  strength?: number;
+  agility?: number;
+  intellect?: number;
+  will?: number;
+  baseAtk?: number;
+  baseHp?: number;
+  /** Decimal, e.g. 0.05 = 5%. */
+  critRate?: number;
+  /** Decimal, e.g. 0.5 = 50%. */
+  critDmg?: number;
+  artsIntensity?: number;
+  /** Percentage points of ult gain efficiency (0 → 100% display). */
+  ultimateGainEfficiency?: number;
+  /** Intrinsic flat defense seed. */
+  defense?: number;
+  /** Combo skill percent CDR baseline in percentage points (e.g. 15 = 15%). */
+  comboCdReductionPercent?: number;
+}
+
 export interface OperatorInstance {
   id: string;
   operatorSlug: string;
@@ -26,6 +47,8 @@ export interface OperatorInstance {
   skillLevels: Record<string, number>;
   talentStates: Record<string, number>;
   trustLevel: number;
+  /** Optional absolute replacements for base/intrinsic stats. */
+  baseStatOverrides?: OperatorBaseStatOverrides;
 }
 
 // ─── Weapons ─────────────────────────────────────────────────────────────────

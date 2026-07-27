@@ -506,14 +506,10 @@ function onClose() {
 
     <template #footer>
       <div class="dialog-footer">
-        <el-checkbox
-          v-if="canForceCrit"
-          class="force-crit-checkbox"
-          :model-value="isForcedCrit"
-          @change="toggleForcedCrit"
-        >
-          {{ t('hitDetail.forceCrit') }}
-        </el-checkbox>
+        <label v-if="canForceCrit" class="ea-check-rect ea-check-rect--sm force-crit-check">
+          <input type="checkbox" :checked="isForcedCrit" @change="toggleForcedCrit" />
+          <span>{{ t('hitDetail.forceCrit') }}</span>
+        </label>
       </div>
     </template>
   </el-dialog>
@@ -657,7 +653,7 @@ tr.is-sub {
   justify-content: flex-start;
   align-items: center;
 }
-.force-crit-checkbox {
+.force-crit-check {
   margin-right: auto;
 }
 </style>

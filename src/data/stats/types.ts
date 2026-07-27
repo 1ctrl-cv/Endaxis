@@ -26,6 +26,19 @@ export interface BaseStatValues {
   baseAttrs: Attributes;
   mainAttributeName: string;
   secondaryAttributeName: string;
+  /**
+   * Intrinsic baselines carried from OperatorInstance.baseStatOverrides
+   * (crit / arts / ult efficiency / defense). Applied in computeStats.
+   */
+  intrinsicOverrides?: {
+    critRate?: number;
+    critDmg?: number;
+    artsIntensity?: number;
+    ultimateGainEfficiency?: number;
+    defense?: number;
+    /** Percentage points; applied as Π(1 − pct/100) seed. */
+    comboCdReductionPercent?: number;
+  };
 }
 
 // ─── Resolved stat modifier (universal interface) ──────────────────────────

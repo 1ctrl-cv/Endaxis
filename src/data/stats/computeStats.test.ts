@@ -76,3 +76,39 @@ describe('computeStats — attributeSources', () => {
     expect(status.attributes.agility).toBe(275);
   });
 });
+
+describe('computeStats — intrinsicOverrides', () => {
+  it('replaces intrinsic crit / arts / ult / defense baselines', () => {
+    const status = computeStats(
+      {
+        ...BASE,
+        intrinsicOverrides: {
+          critRate: 0.2,
+          critDmg: 1.0,
+          artsIntensity: 40,
+          ultimateGainEfficiency: 15,
+          defense: 100,
+          comboCdReductionPercent: 20,
+        },
+      },
+      [],
+      [],
+    );
+
+    expect(status.critRate).toBeCloseTo(0.2);
+    expect(status.critDmg).toBeCloseTo(1.0);
+    expect(status.artsIntensity).toBe(40);
+    expect(status.ultimateGainEfficiency).toBe(15);
+    expect(status.defense).toBe(100);
+    expect(status.comboCdExternalMult).toBeCloseTo(0.8);
+    expect(status.critRateSources).toEqual(
+      expect.arrayContaining([{ label: STAT_SOURCE_BASE_LABEL, value: 0.2 }]),
+    );
+    expect(status.critDmgSources).toEqual(
+      expect.arrayContaining([{ label: STAT_SOURCE_BASE_LABEL, value: 1.0 }]),
+    );
+    expect(status.comboCdReductionPercentSources).toEqual(
+      expect.arrayContaining([{ label: STAT_SOURCE_BASE_LABEL, value: 20 }]),
+    );
+  });
+});

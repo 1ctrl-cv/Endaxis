@@ -242,10 +242,12 @@ export function computeStats(
   let flatHp = 0;
   let defPercent = 0;
   let flatDef = 0;
-  let critRate = 0.05;
-  let critDmg = 0.5;
-  let artsIntensity = 0;
-  let ultimateGainEfficiency = 0;
+  const intrinsic = base.intrinsicOverrides;
+  let critRate = intrinsic?.critRate != null ? Number(intrinsic.critRate) || 0 : 0.05;
+  let critDmg = intrinsic?.critDmg != null ? Number(intrinsic.critDmg) || 0 : 0.5;
+  let artsIntensity = intrinsic?.artsIntensity != null ? Number(intrinsic.artsIntensity) || 0 : 0;
+  let ultimateGainEfficiency =
+    intrinsic?.ultimateGainEfficiency != null ? Number(intrinsic.ultimateGainEfficiency) || 0 : 0;
   let spRecoveryFlat = 0;
   let spRecoveryPercent = 0;
   let ultimateEnergyCostReduction = 0;
@@ -265,9 +267,24 @@ export function computeStats(
   const comboCdReductionPercentSources: StatSourceEntry[] = [];
   const comboCdReductionFlatSources: StatSourceEntry[] = [];
 
+  if (intrinsic?.defense != null) {
+    flatDef += Number(intrinsic.defense) || 0;
+  }
+  if (intrinsic?.comboCdReductionPercent != null) {
+    const pct = Number(intrinsic.comboCdReductionPercent) || 0;
+    comboCdExternalMult *= Math.max(0, 1 - pct / 100);
+    pushStatSource(comboCdReductionPercentSources, STAT_SOURCE_BASE_LABEL, pct);
+  }
+
   // Intrinsic baselines (shown as "基础" in the attribute panel).
-  pushStatSource(critRateSources, STAT_SOURCE_BASE_LABEL, 0.05);
-  pushStatSource(critDmgSources, STAT_SOURCE_BASE_LABEL, 0.5);
+  pushStatSource(critRateSources, STAT_SOURCE_BASE_LABEL, critRate);
+  pushStatSource(critDmgSources, STAT_SOURCE_BASE_LABEL, critDmg);
+  if (artsIntensity !== 0) {
+    pushStatSource(artsIntensitySources, STAT_SOURCE_BASE_LABEL, artsIntensity);
+  }
+  if (ultimateGainEfficiency !== 0) {
+    pushStatSource(ultimateGainEfficiencySources, STAT_SOURCE_BASE_LABEL, ultimateGainEfficiency);
+  }
   // `stat.skillTypes` matches the action's TYPE (generic group — sub-variants share it).
   // `stat.skillId` matches the specific skillId (targets a particular variant).
   const passesSkillScope = (stat: Record<string, unknown>): boolean => {

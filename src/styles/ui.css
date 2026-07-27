@@ -374,6 +374,19 @@
   --ea-btn-color-hover: #000;
 }
 
+/* glass-rect overrides hover vars; re-apply colored hover after it. */
+.ea-btn--glass-rect.ea-btn--hover-danger {
+  --ea-btn-border-hover: var(--ea-danger);
+  --ea-btn-color-hover: var(--ea-danger);
+  --ea-btn-bg-hover: rgba(255, 77, 79, 0.12);
+}
+
+.ea-btn--glass-rect.ea-btn--hover-danger-dark {
+  --ea-btn-border-hover: var(--ea-danger-dark);
+  --ea-btn-color-hover: var(--ea-danger-dark);
+  --ea-btn-bg-hover: rgba(255, 77, 79, 0.12);
+}
+
 .ea-btn--glass-rect-hover-accent {
   --ea-btn-bg-hover: color-mix(in srgb, var(--ea-btn-accent) 12%, transparent);
   --ea-btn-border-hover: var(--ea-btn-accent);
@@ -536,6 +549,24 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.ea-check-rect--sm {
+  gap: 6px;
+  min-height: 24px;
+  padding: 3px 6px;
+  font-size: 12px;
+}
+
+.ea-check-rect--sm input[type='checkbox'] {
+  flex-basis: 12px;
+  height: 12px;
+  width: 12px;
+}
+
+.ea-check-rect--sm input[type='checkbox']::after {
+  width: 6px;
+  height: 3px;
 }
 
 /* Native range — same gold thumb language as timeline zoom (davinci-range). */

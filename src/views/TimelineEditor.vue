@@ -96,7 +96,7 @@ function getMaxBottomPanelHeight(workspaceHeight = timelineWorkspaceHeight.value
 }
 
 const bottomPanelMinHeight = computed(() => {
-  if (leftBottomTool.value === 'contract') return BOTTOM_PANEL_MIN_HEIGHT;
+  if (leftBottomTool.value === 'contract') return BOTTOM_PANEL_MIN_HEIGHT + 20;
   const collapsedCount = Math.min(Math.max(Number(resourceMonitorCollapsedCount.value) || 0, 0), 2);
   if (collapsedCount === 1) return Math.round(BOTTOM_PANEL_MIN_HEIGHT * 0.75);
   if (collapsedCount >= 2) return Math.round(BOTTOM_PANEL_MIN_HEIGHT * 0.5);

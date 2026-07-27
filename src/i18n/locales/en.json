@@ -541,6 +541,12 @@
         "ultimateEnergyCost": "Ultimate Energy Cost",
         "seconds": "s"
       }
+    },
+    "baseStats": {
+      "open": "Customize Base Stats",
+      "title": "Customize Base Stats",
+      "resetOne": "Reset",
+      "resetAll": "Reset All"
     }
   },
   "skillType": {

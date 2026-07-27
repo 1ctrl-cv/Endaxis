@@ -24,10 +24,10 @@ const selectedTagIds = computed<Set<number>>({
 
 const CONTRACT_COLUMN_WIDTH = 76;
 const CONTRACT_COLUMN_GAP = 12;
-const CONTRACT_ROW_HEIGHT = 52;
+const CONTRACT_ROW_HEIGHT = 58;
 const CONTRACT_ROW_GAP = 22;
 const CONTRACT_TAG_WIDTH = 58;
-const CONTRACT_TAG_HEIGHT = 52;
+const CONTRACT_TAG_HEIGHT = 58;
 const CONTRACT_MAX_SCORE_ROW = 3;
 
 const activeSeason = computed(
@@ -557,7 +557,7 @@ function hideBrokenImage(event: Event) {
 .cc-tag-slot {
   position: absolute;
   width: 58px;
-  height: 52px;
+  height: 58px;
   z-index: 2;
 }
 
@@ -585,7 +585,7 @@ function hideBrokenImage(event: Event) {
 
 .cc-tag {
   width: 58px;
-  height: 52px;
+  height: 58px;
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -595,6 +595,7 @@ function hideBrokenImage(event: Event) {
   background: #2a2a2c;
   cursor: pointer;
   z-index: 1;
+  box-sizing: border-box;
 }
 
 .cc-tag:hover {

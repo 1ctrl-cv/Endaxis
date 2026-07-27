@@ -144,7 +144,13 @@ export const useOperatorStore = defineStore('operators', () => {
     updates: Partial<
       Pick<
         OperatorInstance,
-        'level' | 'promoted' | 'potential' | 'skillLevels' | 'talentStates' | 'trustLevel'
+        | 'level'
+        | 'promoted'
+        | 'potential'
+        | 'skillLevels'
+        | 'talentStates'
+        | 'trustLevel'
+        | 'baseStatOverrides'
       >
     >,
   ) {
@@ -157,6 +163,14 @@ export const useOperatorStore = defineStore('operators', () => {
     if (updates.trustLevel !== undefined) o.trustLevel = updates.trustLevel;
     if (updates.skillLevels) Object.assign(o.skillLevels, updates.skillLevels);
     if (updates.talentStates) Object.assign(o.talentStates, updates.talentStates);
+    if ('baseStatOverrides' in updates) {
+      const next = updates.baseStatOverrides;
+      if (!next || Object.keys(next).length === 0) {
+        delete o.baseStatOverrides;
+      } else {
+        o.baseStatOverrides = { ...next };
+      }
+    }
 
     // Normalize promoted for fixed levels
     if (o.level === 1) o.promoted = false;

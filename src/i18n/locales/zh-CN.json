@@ -541,6 +541,12 @@
         "ultimateEnergyCost": "所需终结技能量",
         "seconds": "秒"
       }
+    },
+    "baseStats": {
+      "open": "自定义基础值",
+      "title": "自定义基础值",
+      "resetOne": "恢复",
+      "resetAll": "全部恢复默认"
     }
   },
   "skillType": {
