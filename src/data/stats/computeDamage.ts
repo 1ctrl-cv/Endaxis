@@ -13,7 +13,7 @@
  * Resistance ignore and shred subtract from enemy resistance before converting to resMult.
  */
 
-import type { ScopedDamageModifier } from './types';
+import type { ScopedDamageModifier, StatSourceEntry } from './types';
 import type { DamageElement } from '../types';
 import type { ConsumedStatEffect } from '@/simulation/compiler/types';
 import type { OperatorStatus, ComputedEnemyStatus } from '@/types';
@@ -119,6 +119,7 @@ export interface AtkDetailSnapshot {
   weapon: number;
   atkPercent: number;
   flatAtk: number;
+  atkPercentSources: StatSourceEntry[];
   attrAtkCoeff: { strength: number; agility: number; intellect: number; will: number };
   attributes: { strength: number; agility: number; intellect: number; will: number };
   mainAttributeName: string;
@@ -134,6 +135,7 @@ export function snapshotAtkDetail(
     weapon: operatorStatus.baseAtk.weapon,
     atkPercent: overrides?.atkPercent ?? operatorStatus.atkPercent,
     flatAtk: overrides?.flatAtk ?? operatorStatus.flatAtk,
+    atkPercentSources: [...(operatorStatus.atkPercentSources ?? [])],
     attrAtkCoeff: { ...operatorStatus.attrAtkCoeff },
     attributes: { ...operatorStatus.attributes },
     mainAttributeName: operatorStatus.mainAttributeName,

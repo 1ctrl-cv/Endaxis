@@ -433,6 +433,20 @@ function onClose() {
               <td class="label-cell indent-3">{{ t('statDetail.percentageAtk') }}</td>
               <td class="value-cell">{{ pct(atkDetail.atkPercent) }}</td>
             </tr>
+            <tr
+              v-for="(src, idx) in atkDetail.atkPercentSources || []"
+              :key="`atk-pct-${idx}`"
+              class="sub-row dim"
+            >
+              <td class="label-cell indent-4">
+                {{
+                  t('statDetail.fromSource', {
+                    name: resolveDamageBonusSourceLabel(src.label, t, te, locale.value) || src.label,
+                  })
+                }}
+              </td>
+              <td class="value-cell">{{ pct(src.value) }}</td>
+            </tr>
             <tr class="sub-row">
               <td class="label-cell indent-1">{{ t('statDetail.attributeBonus') }}</td>
               <td class="value-cell">
@@ -554,6 +568,9 @@ function onClose() {
 }
 .indent-3 {
   padding-left: 40px !important;
+}
+.indent-4 {
+  padding-left: 52px !important;
 }
 .expandable-row {
   cursor: pointer;

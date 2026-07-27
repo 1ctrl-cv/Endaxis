@@ -116,6 +116,8 @@ export interface OperatorStatus {
   baseAtk: { operator: number; weapon: number };
   atkPercent: number;
   flatAtk: number;
+  /** Named contributions to `atkPercent` (decimal, e.g. 0.2 = +20%). */
+  atkPercentSources: StatSourceEntry[];
 
   // Per-attribute ATK coefficients (e.g. main=0.005, sub=0.002, others=0 by default)
   attrAtkCoeff: { strength: number; agility: number; intellect: number; will: number };

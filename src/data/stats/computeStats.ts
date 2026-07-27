@@ -203,6 +203,7 @@ export function computeStats(
   let comboCdExternalMult = 1;
   let ultCdExternalMult = 1;
   const damageModifiers: ScopedDamageModifier[] = [];
+  const atkPercentSources: StatSourceEntry[] = [];
   const critRateSources: StatSourceEntry[] = [];
   const critDmgSources: StatSourceEntry[] = [];
   const artsIntensitySources: StatSourceEntry[] = [];
@@ -291,6 +292,7 @@ export function computeStats(
     switch (modifier) {
       case 'atkPercent':
         atkPercent += pct;
+        pushStatSource(atkPercentSources, sourceLabel, pct);
         break;
       case 'attributeAtkPercent':
         // Dynamic (runtime) mods arrive pre-resolved here; sheet effects were converted in Phase 2.
@@ -479,6 +481,7 @@ export function computeStats(
     baseAtk: { operator: baseAtk, weapon: weaponAtk },
     atkPercent,
     flatAtk,
+    atkPercentSources,
     attrAtkCoeff,
     baseHp,
     hpPercent,

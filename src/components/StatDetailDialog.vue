@@ -166,7 +166,7 @@ function onClose() {
         <tbody>
           <tr class="expandable-row" @click="atkOpen = !atkOpen">
             <td class="label-cell bold">
-              ATK
+              {{ t('stats.attack') }}
               <span class="expand-icon">{{ atkOpen ? 'v' : '>' }}</span>
             </td>
             <td class="value-cell bold">{{ num(operatorStatus.attack) }}</td>
@@ -207,6 +207,16 @@ function onClose() {
               <td class="label-cell indent-3">{{ t('statDetail.percentageAtk') }}</td>
               <td class="value-cell">{{ pct(operatorStatus.atkPercent) }}</td>
             </tr>
+            <tr
+              v-for="(src, idx) in operatorStatus.atkPercentSources || []"
+              :key="`atk-pct-${idx}`"
+              class="sub-row dim"
+            >
+              <td class="label-cell indent-4">
+                {{ t('statDetail.fromSource', { name: resolveSourceLabel(src.label) }) }}
+              </td>
+              <td class="value-cell">{{ pct(src.value) }}</td>
+            </tr>
             <tr class="sub-row">
               <td class="label-cell indent-1">{{ t('statDetail.attributeBonus') }}</td>
               <td class="value-cell">
@@ -228,7 +238,7 @@ function onClose() {
 
           <tr class="expandable-row" @click="hpOpen = !hpOpen">
             <td class="label-cell bold">
-              HP
+              {{ t('stats.hp') }}
               <span class="expand-icon">{{ hpOpen ? 'v' : '>' }}</span>
             </td>
             <td class="value-cell bold">{{ num(operatorStatus.health) }}</td>
@@ -475,6 +485,10 @@ function onClose() {
 
 .indent-3 {
   padding-left: 40px !important;
+}
+
+.indent-4 {
+  padding-left: 52px !important;
 }
 
 .expandable-row {
