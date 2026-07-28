@@ -81,6 +81,13 @@ import {
   getContingencyEnemyHealingRate,
 } from '@/data/contingencyContracts/criteriaEffects';
 import {
+  buildGlobalConfigInjection,
+  createEmptyGlobalConfig,
+  normalizeGlobalConfig,
+  type GlobalConfigState,
+  type GlobalModifier,
+} from '@/data/globalConfig';
+import {
   isEnemyEffect,
   type Segment,
   type OperatorSheet,
@@ -632,11 +639,26 @@ export const useTimelineStore = defineStore('timeline', () => {
   // Selected Contingency Contract criteria tags (numeric tag ids, e.g. 102803). The criterion
   // group + level is derived from the id: group = Math.floor(id/100), level = id % 100.
   const contingencyContractTags = ref<number[]>([]);
+  const globalConfig = ref<GlobalConfigState>(createEmptyGlobalConfig());
 
   function setContingencyContractTags(tagIds: unknown) {
     contingencyContractTags.value = Array.isArray(tagIds)
       ? tagIds.map(Number).filter(Number.isFinite)
       : [];
+  }
+
+  function setGlobalConfigPresetId(presetId: string | null) {
+    globalConfig.value = {
+      ...globalConfig.value,
+      presetId: presetId || null,
+    };
+  }
+
+  function setGlobalConfigCustomModifiers(modifiers: GlobalModifier[]) {
+    globalConfig.value = {
+      ...globalConfig.value,
+      customModifiers: Array.isArray(modifiers) ? modifiers : [],
+    };
   }
 
   const effectiveSystemConstants = computed(() =>
@@ -651,9 +673,18 @@ export const useTimelineStore = defineStore('timeline', () => {
     getContingencyEnemyHealingRate(contingencyContractTags.value),
   );
 
-  // Recompute when the selected Contingency Contract criteria change.
   watch(
     contingencyContractTags,
+    () => {
+      if (isLoading.value) return;
+      recomputeAllTrackOperatorStatuses();
+      commitState();
+    },
+    { deep: true },
+  );
+
+  watch(
+    globalConfig,
     () => {
       if (isLoading.value) return;
       recomputeAllTrackOperatorStatuses();
@@ -1230,6 +1261,7 @@ export const useTimelineStore = defineStore('timeline', () => {
       inheritedInitialEffects: inheritedInitialEffects.value,
       inheritedInitialEnemyState: inheritedInitialEnemyState.value,
       contingencyContractTags: contingencyContractTags.value,
+      globalConfig: globalConfig.value,
       operators: operatorStore.operators,
       weapons: weaponStore.weapons,
       gears: gearStore.gears,
@@ -1345,6 +1377,7 @@ export const useTimelineStore = defineStore('timeline', () => {
     contingencyContractTags.value = Array.isArray(snapshot.contingencyContractTags)
       ? snapshot.contingencyContractTags.map(Number).filter(Number.isFinite)
       : [];
+    globalConfig.value = normalizeGlobalConfig(snapshot.globalConfig);
     initialGaugeMode.value = normalizeInitialGaugeMode(snapshot.initialGaugeMode);
     customInitialGauges.value = resolveCustomInitialGaugesFromSnapshot(snapshot);
     recomputeAllTrackOperatorStatuses();
@@ -1381,6 +1414,7 @@ export const useTimelineStore = defineStore('timeline', () => {
           inheritedInitialEffects: inheritedInitialEffects.value,
           inheritedInitialEnemyState: inheritedInitialEnemyState.value,
           contingencyContractTags: contingencyContractTags.value,
+          globalConfig: globalConfig.value,
           operators: operatorStore.operators,
           weapons: weaponStore.weapons,
           gears: gearStore.gears,
@@ -1453,6 +1487,7 @@ export const useTimelineStore = defineStore('timeline', () => {
     contingencyContractTags.value = Array.isArray(incoming.contingencyContractTags)
       ? incoming.contingencyContractTags.map(Number).filter(Number.isFinite)
       : [];
+    globalConfig.value = normalizeGlobalConfig(incoming.globalConfig);
     initialGaugeMode.value = normalizeInitialGaugeMode(incoming.initialGaugeMode);
     customInitialGauges.value = resolveCustomInitialGaugesFromSnapshot(incoming);
     recomputeAllTrackOperatorStatuses();
@@ -2897,6 +2932,8 @@ export const useTimelineStore = defineStore('timeline', () => {
       }
 
       const cc = buildContingencyCriteriaInjection();
+      const gc = buildGlobalConfigInjection(globalConfig.value);
+      const injectedEffects = [...cc.effects, ...gc.effects];
 
       const result = getTeamStatus(
         team as Parameters<typeof getTeamStatus>[0],
@@ -2907,7 +2944,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         undefined,
         undefined,
         undefined,
-        cc.effects as unknown as Parameters<typeof getTeamStatus>[8],
+        injectedEffects as unknown as Parameters<typeof getTeamStatus>[8],
       );
       const effectById = buildEffectById(collected);
       const collectedTriggers = collectTriggerEffects(
@@ -2934,13 +2971,18 @@ export const useTimelineStore = defineStore('timeline', () => {
           cte?.sourceOperatorSlug ||
           null,
       }));
-      // CC triggers already carry a resolved sourceTrackId; append after the cloned operator triggers.
-      // Use structuredClone (not cloneJsonData) to preserve `duration: Infinity`, the engine's
-      // sentinel for permanent statuses — JSON.stringify turns Infinity into null, which collapses
-      // to a 0 duration and silently drops the status (breaks Bent Edges, Wrap).
-      const allTriggers = [...serializedTriggers, ...structuredClone(cc.triggers)];
+      // CC / global-config triggers already carry a resolved sourceTrackId; append after the
+      // cloned operator triggers. Use structuredClone (not cloneJsonData) to preserve
+      // `duration: Infinity`, the engine's sentinel for permanent statuses — JSON.stringify
+      // turns Infinity into null, which collapses to a 0 duration and silently drops the
+      // status (breaks Bent Edges, Wrap).
+      const allTriggers = [
+        ...serializedTriggers,
+        ...structuredClone(cc.triggers),
+        ...structuredClone(gc.triggers),
+      ];
       runtimeInitialEffects.value = buildInitialRuntimeEffectsFromCollected(
-        [...collected, ...cc.effects] as unknown as CollectedEffectEntry[],
+        [...collected, ...injectedEffects] as unknown as CollectedEffectEntry[],
         armoryContext,
       );
       tracks.value.forEach((track, index) => {
@@ -5715,6 +5757,7 @@ export const useTimelineStore = defineStore('timeline', () => {
     inheritedInitialEffects,
     inheritedInitialEnemyState,
     contingencyContractTags,
+    globalConfig,
     prepDuration,
     prepExpanded,
     battleDuration,
@@ -5995,5 +6038,8 @@ export const useTimelineStore = defineStore('timeline', () => {
     simLogRevision,
     contingencyContractTags,
     setContingencyContractTags,
+    globalConfig,
+    setGlobalConfigPresetId,
+    setGlobalConfigCustomModifiers,
   };
 });

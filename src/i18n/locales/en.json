@@ -154,6 +154,7 @@
     "activityBar": {
       "library": "Operator Skill Library",
       "contract": "Contingency Contract",
+      "globalConfig": "Global Config",
       "resourceMonitor": "Resource Monitor",
       "inspector": "Skill Details",
       "battleLog": "Battle Log"
@@ -1065,6 +1066,15 @@
       "desc": "Max:{max} | Nodes:{nodes}",
       "empty": "No matching enemies found"
     }
+  },
+  "globalConfig": {
+    "title": "Global Config",
+    "customSection": "Custom Values",
+    "customEmpty": "No custom modifiers yet.",
+    "editCustom": "Edit custom values",
+    "editCustomTitle": "Edit Custom Values",
+    "addEntry": "Add",
+    "presetNone": "None"
   },
   "contingencyContract": {
     "title": "Contingency Contract",

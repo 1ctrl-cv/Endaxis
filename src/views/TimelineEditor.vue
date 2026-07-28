@@ -12,6 +12,8 @@ import TimelineGrid from '../components/TimelineGrid.vue';
 import ActionLibrary from '../components/ActionLibrary.vue';
 import EnemySettingsPanel from '../components/EnemySettingsPanel.vue';
 import ContingencyContractPanel from '../components/ContingencyContractPanel.vue';
+import GlobalConfigSettingsPanel from '../components/GlobalConfigSettingsPanel.vue';
+import GlobalConfigPresetPanel from '../components/GlobalConfigPresetPanel.vue';
 import PropertiesPanel from '../components/PropertiesPanel.vue';
 import ResourceMonitor from '../components/ResourceMonitor.vue';
 import SimLogPanel from '../components/SimLogPanel.vue';
@@ -73,7 +75,7 @@ const isRightPanelCollapsed = ref(false);
 const isBottomPanelCollapsed = ref(false);
 const activeWorkbenchDrag = ref(null);
 const rightPanelTool = ref('inspector'); // 'inspector' | 'battleLog'
-const leftBottomTool = ref('enemy'); // 'enemy' | 'contract'
+const leftBottomTool = ref('enemy'); // 'enemy' | 'global' | 'contract'
 const analysisDialogVisible = ref(false);
 const resourceMonitorExpandAllToken = ref(0);
 const resourceMonitorCollapsedCount = ref(0);
@@ -148,7 +150,10 @@ function restoreWorkbenchLayout() {
     isRightPanelCollapsed.value = parsed.isRightPanelCollapsed === true;
     isBottomPanelCollapsed.value = parsed.isBottomPanelCollapsed === true;
     rightPanelTool.value = parsed.rightPanelTool === 'battleLog' ? 'battleLog' : 'inspector';
-    leftBottomTool.value = parsed.leftBottomTool === 'contract' ? 'contract' : 'enemy';
+    leftBottomTool.value =
+      parsed.leftBottomTool === 'contract' || parsed.leftBottomTool === 'global'
+        ? parsed.leftBottomTool
+        : 'enemy';
   } catch (error) {
     console.error(error);
   }
@@ -306,7 +311,7 @@ const leftPanelStackStyle = computed(() => ({
 }));
 
 function toggleBottomTool(tool = 'enemy') {
-  const nextTool = tool === 'contract' ? 'contract' : 'enemy';
+  const nextTool = tool === 'contract' || tool === 'global' ? tool : 'enemy';
 
   if (isBottomPanelCollapsed.value) {
     leftBottomTool.value = nextTool;
@@ -1368,6 +1373,22 @@ onUnmounted(() => {
       <div class="activity-bar__group activity-bar__group--bottom">
         <button
           type="button"
+          class="activity-bar__button activity-bar__button--global"
+          :class="{ 'is-active': !isBottomPanelCollapsed && leftBottomTool === 'global' }"
+          :aria-label="t('timeline.activityBar.globalConfig')"
+          :data-tooltip="t('timeline.activityBar.globalConfig')"
+          @click="toggleBottomTool('global')"
+        >
+          <img
+            class="activity-bar__image-icon activity-bar__image-icon--global"
+            src="/icons/setting_tab_setting.webp"
+            alt=""
+            aria-hidden="true"
+          />
+        </button>
+
+        <button
+          type="button"
           class="activity-bar__button activity-bar__button--contract"
           :class="{ 'is-active': !isBottomPanelCollapsed && leftBottomTool === 'contract' }"
           :aria-label="t('timeline.activityBar.contract')"
@@ -1431,9 +1452,12 @@ onUnmounted(() => {
           <div
             v-if="!isBottomPanelCollapsed"
             class="action-library-stack__bottom"
-            :class="{ 'is-contract': leftBottomTool === 'contract' }"
+            :class="{
+              'is-contract': leftBottomTool === 'contract',
+            }"
           >
             <EnemySettingsPanel v-if="leftBottomTool === 'enemy'" />
+            <GlobalConfigSettingsPanel v-else-if="leftBottomTool === 'global'" />
             <div v-else class="contract-side-panel">
               <img
                 src="/contingency_contract/1/deco_contingency_select_tag_3.webp"
@@ -1820,6 +1844,7 @@ onUnmounted(() => {
               @collapse-panel="closeBottomPanelFromResourceMonitor"
               @section-collapse-change="handleResourceMonitorSectionCollapseChange"
             />
+            <GlobalConfigPresetPanel v-else-if="leftBottomTool === 'global'" />
             <ContingencyContractPanel v-else />
           </div>
         </div>
@@ -1866,22 +1891,12 @@ onUnmounted(() => {
           :data-tooltip="t('timeline.activityBar.inspector')"
           @click="toggleRightTool('inspector')"
         >
-          <svg
-            class="activity-bar__icon activity-bar__icon--inspector"
-            viewBox="0 0 32 32"
+          <img
+            class="activity-bar__image-icon activity-bar__image-icon--inspector"
+            src="/icons/btn_week_raid.webp"
+            alt=""
             aria-hidden="true"
-          >
-            <path d="M7 6h18v20H7Z" fill="currentColor" opacity="0.9" />
-            <path d="M22 6v6h-6Z" fill="currentColor" opacity="0.54" />
-            <path
-              d="M11 12h10M11 18h7M11 22h10"
-              stroke="#101114"
-              stroke-width="2"
-              stroke-linecap="square"
-            />
-            <path d="M9 9h5v5H9Z" fill="#101114" opacity="0.72" />
-            <path d="M9 16h3v3H9Z" fill="#101114" opacity="0.56" />
-          </svg>
+          />
         </button>
 
         <button
@@ -1892,21 +1907,12 @@ onUnmounted(() => {
           :data-tooltip="t('timeline.activityBar.battleLog')"
           @click="toggleRightTool('battleLog')"
         >
-          <svg
-            class="activity-bar__icon activity-bar__icon--battle-log"
-            viewBox="0 0 32 32"
+          <img
+            class="activity-bar__image-icon activity-bar__image-icon--battle-log"
+            src="/icons/btn_manual.webp"
+            alt=""
             aria-hidden="true"
-          >
-            <path
-              d="M10 6h14a2 2 0 0 1 2 2v18a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z"
-              fill="#ffffff"
-              opacity="0.92"
-            />
-            <path d="M12 11h12v2H12zM12 16h12v2H12zM12 21h12v2H12z" fill="#ffffff" opacity="0.82" />
-            <circle cx="10" cy="12" r="1.2" fill="#ffffff" opacity="0.9" />
-            <circle cx="10" cy="17" r="1.2" fill="#ffffff" opacity="0.9" />
-            <circle cx="10" cy="22" r="1.2" fill="#ffffff" opacity="0.9" />
-          </svg>
+          />
         </button>
       </div>
     </aside>
@@ -2250,14 +2256,16 @@ onUnmounted(() => {
   width: 24px;
   height: 24px;
 }
+.activity-bar__button--global .activity-bar__image-icon--global,
+.activity-bar__button--inspector .activity-bar__image-icon--inspector,
+.activity-bar__button--battle-log .activity-bar__image-icon--battle-log {
+  width: 24px;
+  height: 24px;
+}
 .activity-bar__button--panel .activity-bar__icon {
   width: 24px;
   height: 24px;
   transform: translateY(0.5px);
-}
-.activity-bar__button--inspector .activity-bar__icon {
-  width: 22px;
-  height: 22px;
 }
 .activity-bar__image-icon {
   width: 28px;

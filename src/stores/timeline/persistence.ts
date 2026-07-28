@@ -23,6 +23,8 @@ import type {
   CycleBoundary,
   SwitchEvent,
 } from './types';
+import type { GlobalConfigState } from '@/data/globalConfig';
+import { createEmptyGlobalConfig } from '@/data/globalConfig';
 
 const tr = (key: string, params?: Record<string, unknown>) => i18n.global.t(key, params ?? {});
 
@@ -51,6 +53,7 @@ interface PersistenceDeps {
   inheritedInitialEffects: Ref<Record<string, unknown>[]>;
   inheritedInitialEnemyState: Ref<Record<string, unknown> | null>;
   contingencyContractTags: Ref<number[]>;
+  globalConfig: Ref<GlobalConfigState>;
   prepDuration: Ref<number>;
   prepExpanded: Ref<boolean>;
   battleDuration: Ref<number>;
@@ -102,6 +105,7 @@ export function useTimelinePersistence(deps: PersistenceDeps) {
     inheritedInitialEffects,
     inheritedInitialEnemyState,
     contingencyContractTags,
+    globalConfig,
     prepDuration,
     prepExpanded,
     battleDuration,
@@ -150,6 +154,7 @@ export function useTimelinePersistence(deps: PersistenceDeps) {
         inheritedInitialEffects,
         inheritedInitialEnemyState,
         contingencyContractTags,
+        globalConfig,
         trackRowHeightWeights,
         initialGaugeMode,
         customInitialGauges,
@@ -176,6 +181,7 @@ export function useTimelinePersistence(deps: PersistenceDeps) {
         newInheritedInitialEffects,
         newInheritedInitialEnemyState,
         newContingencyContractTags,
+        newGlobalConfig,
         newTrackRowHeightWeights,
         newInitialGaugeMode,
         newCustomInitialGauges,
@@ -218,6 +224,7 @@ export function useTimelinePersistence(deps: PersistenceDeps) {
             inheritedInitialEffects: newInheritedInitialEffects,
             inheritedInitialEnemyState: newInheritedInitialEnemyState,
             contingencyContractTags: newContingencyContractTags,
+            globalConfig: newGlobalConfig,
           };
         }
 
@@ -284,6 +291,8 @@ export function useTimelinePersistence(deps: PersistenceDeps) {
           simulationStartline.value = null;
           inheritedInitialEffects.value = [];
           inheritedInitialEnemyState.value = null;
+          contingencyContractTags.value = [];
+          globalConfig.value = createEmptyGlobalConfig();
           recomputeAllTrackOperatorStatuses();
         }
 
@@ -314,6 +323,8 @@ export function useTimelinePersistence(deps: PersistenceDeps) {
     simulationStartline.value = null;
     inheritedInitialEffects.value = [];
     inheritedInitialEnemyState.value = null;
+    contingencyContractTags.value = [];
+    globalConfig.value = createEmptyGlobalConfig();
     prepDuration.value = 5;
     prepExpanded.value = true;
     battleDuration.value = 120;
@@ -393,6 +404,7 @@ export function useTimelinePersistence(deps: PersistenceDeps) {
         inheritedInitialEffects: inheritedInitialEffects.value,
         inheritedInitialEnemyState: inheritedInitialEnemyState.value,
         contingencyContractTags: contingencyContractTags.value,
+        globalConfig: globalConfig.value,
       };
     }
 

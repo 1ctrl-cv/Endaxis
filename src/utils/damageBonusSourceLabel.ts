@@ -1,4 +1,5 @@
 import { getGearSetGameName, getWeaponGameName } from '@/data/gameText';
+import { GLOBAL_CONFIG_SOURCE_LABEL } from '@/data/globalConfig';
 import { translateEffectName } from '@/editor/hits/statusOptions';
 
 type TranslateFn = (key: string) => string;
@@ -28,6 +29,7 @@ export function resolveDamageBonusSourceLabel(
 ): string {
   const label = String(rawLabel || '').trim();
   if (!label) return '';
+  if (label === GLOBAL_CONFIG_SOURCE_LABEL) return t('globalConfig.title');
 
   // Already localized display text (e.g. stamped gear/weapon names).
   if (/[\u4e00-\u9fff]/.test(label) || /\s/.test(label)) return label;

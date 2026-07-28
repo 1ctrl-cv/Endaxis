@@ -154,6 +154,7 @@
     "activityBar": {
       "library": "干员技能库",
       "contract": "危机合约",
+      "globalConfig": "全局配置",
       "resourceMonitor": "资源监控",
       "inspector": "技能详情",
       "battleLog": "战斗日志"
@@ -711,10 +712,10 @@
       "flatHp": "固定生命值",
       "defPercent": "防御力%",
       "flatDef": "固定防御力",
-      "artsIntensity": "源石强度",
+      "artsIntensity": "源石技艺强度",
       "ultimateGainEfficiency": "终结技充能效率",
-      "spRecoveryFlat": "SP回复",
-      "spRecoveryPercent": "SP回复%",
+      "spRecoveryFlat": "技力回复",
+      "spRecoveryPercent": "技力回复%",
       "ultimateEnergyCostPercent": "终结技能量消耗%",
       "ultimateEnergyGain": "终结技充能",
       "cooldownReduction": "冷却缩减",
@@ -1065,6 +1066,15 @@
       "desc": "上限:{max} | 节点:{nodes}",
       "empty": "未找到相关敌人"
     }
+  },
+  "globalConfig": {
+    "title": "全局配置",
+    "customSection": "自定义数值",
+    "customEmpty": "尚未添加自定义修正。",
+    "editCustom": "编辑自定义数值",
+    "editCustomTitle": "编辑自定义数值",
+    "addEntry": "添加",
+    "presetNone": "无"
   },
   "contingencyContract": {
     "title": "危机合约",

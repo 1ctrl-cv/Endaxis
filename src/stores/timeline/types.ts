@@ -5,6 +5,7 @@
 // keep an index signature for the rest. Phase 2b decomposition builds on these.
 
 import type { SkillRequisite } from '@/data/types';
+import type { GlobalConfigState } from '@/data/globalConfig';
 
 /** A skill/action instance placed on a track's timeline. */
 export interface TimelineAction {
@@ -169,6 +170,7 @@ export interface ScenarioSnapshot {
   inheritedInitialEffects?: unknown[];
   inheritedInitialEnemyState?: Record<string, unknown> | null;
   contingencyContractTags?: unknown[];
+  globalConfig?: GlobalConfigState;
   operators?: unknown;
   weapons?: unknown;
   gears?: unknown;

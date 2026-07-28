@@ -154,6 +154,7 @@
     "activityBar": {
       "library": "Библиотека навыков",
       "contract": "Контракт",
+      "globalConfig": "Глобальные настройки",
       "resourceMonitor": "Монитор ресурсов",
       "inspector": "Детали навыка",
       "battleLog": "Журнал боя"
@@ -942,6 +943,15 @@
       "desc": "Макс:{max} | Узлы:{nodes}",
       "empty": "Враги не найдены"
     }
+  },
+  "globalConfig": {
+    "title": "Глобальные настройки",
+    "customSection": "Свои значения",
+    "customEmpty": "Пока нет своих модификаторов.",
+    "editCustom": "Изменить значения",
+    "editCustomTitle": "Свои значения",
+    "addEntry": "Добавить",
+    "presetNone": "Нет"
   },
   "contingencyContract": {
     "title": "Контракт",
