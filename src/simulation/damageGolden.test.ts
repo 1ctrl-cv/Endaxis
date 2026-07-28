@@ -1227,6 +1227,10 @@ describe('optimizer damage golden baselines', () => {
           startTime: 1,
           hits: [{ offset: 0, multiplier: 100, spRecovery: 0, spReturn: 0, stagger: 0 }],
         }),
+        createAction('gear_buffed_ba', 'basicAttack', {
+          startTime: 2,
+          hits: [{ offset: 0, multiplier: 100, spRecovery: 0, spReturn: 0, stagger: 0 }],
+        }),
       ]),
     ];
     const gearTeam = createTeam(operator.id, null, {
@@ -1240,9 +1244,10 @@ describe('optimizer damage golden baselines', () => {
     const result = runEndaxisScenario(gearTracks);
     const setupHit = damageByAction(result, 'gear_recover_inst');
     const buffedHit = damageByAction(result, 'gear_buffed_hit_inst');
+    const buffedBa = damageByAction(result, 'gear_buffed_ba_inst');
 
-    expect(damageHits(result).map(hit => hit._expectedDamage)).toEqual([871, 1010]);
-    expect(totalDamage(result)).toBe(1881);
+    expect(damageHits(result).map(hit => hit._expectedDamage)).toEqual([871, 1010, 1010]);
+    expect(totalDamage(result)).toBe(2891);
     expect(setupHit._damageBreakdown).toMatchObject({
       dmgBonus: 0,
       expectedDamage: 871,
@@ -1250,6 +1255,12 @@ describe('optimizer damage golden baselines', () => {
     expect(buffedHit._damageBreakdown).toMatchObject({
       multiplier: 100,
       skillType: 'battleSkill',
+      element: 'physical',
+      dmgBonus: 0.16,
+      dmgBonusMult: 1.16,
+      expectedDamage: 1010,
+    });
+    expect(buffedBa._damageBreakdown).toMatchObject({
       element: 'physical',
       dmgBonus: 0.16,
       dmgBonusMult: 1.16,

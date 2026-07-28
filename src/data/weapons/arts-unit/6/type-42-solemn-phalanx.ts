@@ -55,8 +55,6 @@ const sheet: WeaponSheet = {
               effects: [
                 {
                   kind: 'status',
-                  // 文案「法术伤害」— must be arts-scoped so reactions (e.g. corrosion) can receive it.
-                  // Unscoped dmgBonus is「所有技能伤害加成」and no longer applies to reactions.
                   stat: {
                     modifier: 'dmgBonus',
                     elements: ['heat', 'cryo', 'electric', 'nature'],

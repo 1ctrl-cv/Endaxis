@@ -29,7 +29,10 @@ const sheet: WeaponSheet = {
     effects: [
       {
         kind: 'status',
-        stat: { modifier: 'dmgBonus' },
+        stat: {
+          modifier: 'dmgBonus',
+          elements: ['physical', 'heat', 'cryo', 'electric', 'nature'],
+        },
         target: 'self',
         value: [20, 24, 28, 32, 36, 40, 44, 48, 56],
         condition: { kind: 'enemyStatus', status: 'vulnerability' },

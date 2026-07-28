@@ -20,7 +20,6 @@ const sheet: GearSetSheet = {
         {
           id: 'eternal-xiranite-set',
           kind: 'status',
-          // Element-scoped so reactions/burst get it (unscoped = 所有技能伤害加成 only).
           stat: {
             modifier: 'dmgBonus',
             elements: ['physical', 'heat', 'cryo', 'electric', 'nature'],

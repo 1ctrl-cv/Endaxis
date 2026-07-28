@@ -39,7 +39,10 @@ const sheet: WeaponSheet = {
       },
       {
         kind: 'status',
-        stat: { modifier: 'dmgBonus' },
+        stat: {
+          modifier: 'dmgBonus',
+          elements: ['physical', 'heat', 'cryo', 'electric', 'nature'],
+        },
         target: 'self',
         value: [35, 42, 49, 56, 63, 70, 77, 84, 98],
         condition: { kind: 'enemyStaggered' },

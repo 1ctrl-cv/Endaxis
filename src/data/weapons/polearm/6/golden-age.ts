@@ -36,7 +36,10 @@ const sheet: WeaponSheet = {
         effects: [
           {
             kind: 'status',
-            stat: { modifier: 'dmgBonus' },
+            stat: {
+              modifier: 'dmgBonus',
+              elements: ['heat', 'cryo', 'electric', 'nature'],
+            },
             target: 'team',
             value: [5, 6, 7, 8, 9, 10, 11, 12, 14],
             duration: 20,

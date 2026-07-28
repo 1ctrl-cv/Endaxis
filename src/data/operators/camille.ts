@@ -76,7 +76,7 @@ const sheet: OperatorSheet = {
             {
               id: 'camilla-t2-self',
               kind: 'status',
-              stat: { modifier: 'dmgBonus' },
+              stat: { modifier: 'dmgBonus', elements: 'heat' },
               value: [2, 4],
               target: 'self',
               duration: 40,
@@ -86,7 +86,7 @@ const sheet: OperatorSheet = {
             {
               id: 'camilla-t2-team',
               kind: 'status',
-              stat: { modifier: 'dmgBonus' },
+              stat: { modifier: 'dmgBonus', elements: 'heat' },
               value: [0.5, 1],
               target: 'teamExcludeSelf',
               duration: 40,

@@ -35,7 +35,10 @@ const sheet: WeaponSheet = {
           {
             name: 'dreamStriving',
             kind: 'status',
-            stat: { modifier: 'dmgBonus' },
+            stat: {
+              modifier: 'dmgBonus',
+              elements: ['physical', 'heat', 'cryo', 'electric', 'nature'],
+            },
             target: 'team',
             value: [5, 6, 7, 8, 9, 10, 11, 12, 14],
             duration: 20,

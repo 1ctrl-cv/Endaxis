@@ -46,7 +46,10 @@ const sheet: OperatorSheet = {
       effects: [
         {
           kind: 'status',
-          stat: { modifier: 'dmgBonus' },
+          stat: {
+            modifier: 'dmgBonus',
+            elements: ['physical', 'heat', 'cryo', 'electric', 'nature'],
+          },
           target: 'self',
           value: 20,
           condition: {
