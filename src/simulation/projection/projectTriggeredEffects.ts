@@ -122,8 +122,14 @@ export function buildApplyExpireWindows(
         // Remaining-stacks continuations: ignore same-time expires.
         nextExpire = expTimes.slice(expIdx).find(t => t > a.time) ?? a.expiresAt;
       } else if (expIdx < expTimes.length && (expTimes[expIdx] as number) >= a.time) {
-        nextExpire = expTimes[expIdx] as number;
-        expIdx++;
+        const candidateExpire = expTimes[expIdx] as number;
+        nextExpire = candidateExpire;
+        // Only consume this expire when it actually closes the window. If a later
+        // apply cuts first (stack refresh), keep the expire for that later apply
+        // (e.g. Tangtang whirlpools: 2 applies + 1 consume must cut the last segment).
+        if (candidateExpire <= nextApplyTime) {
+          expIdx++;
+        }
       } else {
         nextExpire = a.expiresAt;
       }

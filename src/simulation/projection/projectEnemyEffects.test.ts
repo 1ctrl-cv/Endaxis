@@ -98,4 +98,43 @@ describe('buildApplyExpireWindows', () => {
       expect.objectContaining({ start: 21, end: 61, effect: expect.objectContaining({ value: 14 }) }),
     ]);
   });
+
+  it('keeps a later consume for the last stack-refresh apply (Tangtang whirlpools)', () => {
+    const base = {
+      kind: 'status' as const,
+      id: 'tangtang-whirlpools',
+      name: 'whirlpools',
+      target: 'self' as const,
+      maxStacks: 2,
+      duration: 30,
+    };
+    const windows = buildApplyExpireWindows(
+      [
+        {
+          key: 'tangtang-whirlpools',
+          time: 0,
+          stacks: 1,
+          maxStacks: 2,
+          expiresAt: 30,
+          effect: base,
+          effectId: 'tangtang-whirlpools',
+        },
+        {
+          key: 'tangtang-whirlpools',
+          time: 5,
+          stacks: 2,
+          maxStacks: 2,
+          expiresAt: 35,
+          effect: base,
+          effectId: 'tangtang-whirlpools',
+        },
+      ],
+      [{ key: 'tangtang-whirlpools', time: 10 }],
+    );
+
+    expect(windows.get('tangtang-whirlpools')).toEqual([
+      expect.objectContaining({ start: 0, end: 5, stacks: 1 }),
+      expect.objectContaining({ start: 5, end: 10, stacks: 2 }),
+    ]);
+  });
 });
