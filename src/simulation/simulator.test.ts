@@ -4310,4 +4310,96 @@ describe('Yvonne potential 5 ultimate buffs', () => {
       ),
     );
   });
+
+  it('opens combo window when shatter consumes solidification (Alesh-style)', () => {
+    const windowId = 'alesh-combo-window';
+    const result = runScenario(
+      [
+        createTrack('alesh', [
+          createAction('freeze', 'battleSkill', {
+            startTime: 0,
+            hits: [
+              {
+                offset: 0,
+                multiplier: 0,
+                spRecovery: 0,
+                spReturn: 0,
+                stagger: 0,
+                effects: [
+                  {
+                    kind: 'reaction',
+                    reactionType: 'solidification',
+                    forced: true,
+                  } as Effect,
+                ],
+              },
+            ],
+          }),
+          createAction('shatter_hit', 'battleSkill', {
+            startTime: 1,
+            hits: [
+              {
+                offset: 0,
+                multiplier: 0,
+                spRecovery: 0,
+                spReturn: 0,
+                stagger: 0,
+                effects: [{ kind: 'physicalStatus', physicalType: 'vulnerability' } as Effect],
+              },
+            ],
+          }),
+        ]),
+      ],
+      registry([
+        {
+          sourceTrackId: 'alesh',
+          sourceSkillType: 'comboSkill',
+          triggerEffect: {
+            trigger: {
+              kind: 'onStatusConsumed',
+              status: [
+                'combustion',
+                'electrification',
+                'solidification',
+                'corrosion',
+                'originiumCrystals',
+              ],
+              target: 'enemy',
+              triggerScope: 'global',
+            },
+            effects: [
+              {
+                id: windowId,
+                name: 'comboWindow',
+                kind: 'status',
+                target: 'self',
+                duration: 5,
+                hide: true,
+              },
+            ],
+          },
+        },
+      ]),
+    );
+
+    expect(result.enemyLog).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'REACTION_TRIGGER',
+          reactionType: 'shatter',
+          time: 1,
+        }),
+      ]),
+    );
+    expect(result.operatorLog).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'OPERATOR_EFFECT_APPLY',
+          id: windowId,
+          targetTrackId: 'alesh',
+          time: 1,
+        }),
+      ]),
+    );
+  });
 });

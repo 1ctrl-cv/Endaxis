@@ -485,16 +485,20 @@ export class EnemyEffectHandler implements EventHandler<EnemyEffectEvents> {
       ...(isLiftOrKnockdown ? { actualControl: actualPhysicalControl } : {}),
     });
 
-    // Shatter: any physical hit on a solidified enemy immediately consumes solidification
+    // Shatter: physical status on a solidified enemy immediately consumes solidification
     if (state.solidification) {
+      const solidLevel = state.solidification.level;
+      const solidSources = state.solidification.consumedStackSources;
+      state.solidification = null;
       this.triggerShatter(
-        state.solidification.level,
+        solidLevel,
         time,
         sourceId,
         ctx,
-        state.solidification.consumedStackSources,
+        solidSources,
+        sourceSkillType,
+        sourceSkillId,
       );
-      state.solidification = null;
     }
 
     switch (physicalType) {
@@ -737,6 +741,8 @@ export class EnemyEffectHandler implements EventHandler<EnemyEffectEvents> {
     sourceId: string,
     ctx: SimulationContext,
     consumedStackSources?: Record<string, number>,
+    sourceSkillType?: string,
+    sourceSkillId?: string,
   ): void {
     ctx.queue.cancel(
       e =>
@@ -750,7 +756,19 @@ export class EnemyEffectHandler implements EventHandler<EnemyEffectEvents> {
       kind: 'debuff',
       debuffType: 'solidification',
       consumed: true,
+      sourceId,
     });
+    this.registry?.onStatusConsumed(
+      'solidification',
+      undefined,
+      'enemy',
+      sourceId,
+      time,
+      ctx,
+      level,
+      sourceSkillType,
+      sourceSkillId,
+    );
     ctx.queue.enqueue(
       {
         type: 'ENEMY_EFFECT_APPLY',
@@ -761,6 +779,8 @@ export class EnemyEffectHandler implements EventHandler<EnemyEffectEvents> {
         sourceId,
         effectiveDuration: 0,
         consumedStackSources,
+        sourceSkillType,
+        sourceSkillId,
       },
       1,
     );
