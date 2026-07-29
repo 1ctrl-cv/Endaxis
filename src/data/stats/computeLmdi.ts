@@ -669,26 +669,22 @@ export function computeReactionLmdiContributions(params: ReactionLmdiParams): Lm
 
 function matchesCategory(mod: ResolvedStatModifier, category: string): boolean {
   const stat = mod.stat;
-  if (typeof stat === 'string') {
-    // OperatorStat string form
-    switch (category) {
-      case 'atk':
-        return stat === 'atkPercent' || stat === 'atkFlat' || stat === 'attributeAtkPercent';
-      case 'crit':
-        return stat === 'critRate' || stat === 'critDmg';
-      case 'dmgBonus':
-      case 'ampBonus':
-      case 'directMultiplier':
-      case 'resistanceIgnore':
-        return stat === category;
-      default:
-        return false;
-    }
+  const key =
+    typeof stat === 'string'
+      ? stat
+      : typeof stat === 'object' && stat !== null && 'modifier' in stat
+        ? String((stat as { modifier: unknown }).modifier)
+        : null;
+  if (!key) return false;
+
+  // OperatorStat may be a string or `{ modifier }` object; EnemyStat is always object form.
+  // Categories like `atk` / `crit` group multiple modifiers; others match the modifier name.
+  switch (category) {
+    case 'atk':
+      return key === 'atkPercent' || key === 'atkFlat' || key === 'attributeAtkPercent';
+    case 'crit':
+      return key === 'critRate' || key === 'critDmg';
+    default:
+      return key === category;
   }
-  if (typeof stat === 'object' && stat !== null && 'modifier' in stat) {
-    // EnemyStat object form: { modifier: 'susceptibility' | 'resistanceShred' | ... }
-    const modifier = (stat as any).modifier;
-    return modifier === category;
-  }
-  return false;
 }

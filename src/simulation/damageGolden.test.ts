@@ -1194,8 +1194,9 @@ describe('optimizer damage golden baselines', () => {
       element: 'physical',
       expectedDamage: 993,
     });
-    expect(hit._lmdiSelf).toBe(993);
-    expect(hit._lmdiExternal).toEqual({});
+    // Team atkPercent from weapon holder (alpha) must credit external LMDI, not the hitter's self.
+    expect(hit._lmdiSelf).toBeCloseTo(871.0562353936277, 8);
+    expect((hit._lmdiExternal as Record<string, number>).alpha).toBeCloseTo(121.94376460637227, 8);
     expect(result.operatorLog).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
