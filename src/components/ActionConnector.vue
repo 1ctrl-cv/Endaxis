@@ -75,6 +75,8 @@ const getTrackInfoByNodeId = nodeId => {
 };
 
 const isConnectionVisible = computed(() => {
+  if (!store.isTimelineViewLayerVisible('effectLinks')) return false;
+
   const fromId = getEndpointId(props.connection, 'from');
   const toId = getEndpointId(props.connection, 'to');
   const fromInfo = fromId ? getTrackInfoByNodeId(fromId) : { trackIndex: null, type: null };

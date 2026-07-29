@@ -1660,7 +1660,7 @@ onUnmounted(() => {
           <el-popover
             v-model:visible="moreMenuOpen"
             placement="bottom-end"
-            :width="248"
+            :width="280"
             trigger="click"
             :show-arrow="false"
             popper-class="header-more-popper"
@@ -1695,37 +1695,82 @@ onUnmounted(() => {
 
             <div class="header-more-panel">
               <section class="header-more-section">
-                <h4 class="header-more-section__title">{{ t('timeline.header.sectionView') }}</h4>
-                <p class="header-more-section__hint">{{ t('timeline.header.hideEffectsTooltip') }}</p>
-                <div v-if="hasOperatorTracks" class="header-more-checklist">
-                  <template v-for="(track, index) in store.teamTracksInfo" :key="index">
+                <h4 class="header-more-section__title">
+                  {{ t('timeline.header.sectionView') }}
+                </h4>
+
+                <div class="header-more-view-block">
+                  <h5 class="header-more-subsection__title">
+                    {{ t('timeline.header.sectionViewLayers') }}
+                  </h5>
+                  <div class="header-more-checklist header-more-checklist--grid">
                     <button
-                      v-if="track.id"
+                      v-for="layerId in store.TIMELINE_VIEW_LAYER_IDS"
+                      :key="layerId"
                       type="button"
-                      class="header-more-check-row"
-                      @click="store.toggleOperatorEffectsVisible(index)"
+                      class="header-more-check-row header-more-check-row--compact"
+                      :title="t(`timeline.header.viewLayers.${layerId}Tooltip`)"
+                      @click="store.toggleTimelineViewLayer(layerId)"
                     >
                       <svg
                         viewBox="0 0 16 16"
-                        width="14"
-                        height="14"
+                        width="12"
+                        height="12"
                         fill="none"
-                        :stroke="store.getCharacterElementColor(track.id)"
+                        stroke="rgba(255, 215, 0, 0.85)"
                         stroke-width="1.5"
                         aria-hidden="true"
                       >
                         <rect x="1" y="1" width="14" height="14" rx="2" />
                         <polyline
-                          v-if="store.operatorEffectsVisible[index]"
+                          v-if="store.isTimelineViewLayerVisible(layerId)"
                           points="3,8 6.5,11.5 13,4.5"
                           stroke-width="2"
                         />
                       </svg>
-                      <span>{{ track.name }}</span>
+                      <span>{{ t(`timeline.header.viewLayers.${layerId}`) }}</span>
                     </button>
-                  </template>
+                  </div>
                 </div>
-                <p v-else class="header-more-empty">{{ t('timeline.header.hideEffectsEmpty') }}</p>
+
+                <div class="header-more-view-block">
+                  <h5
+                    class="header-more-subsection__title"
+                    :title="t('timeline.header.viewOperatorsHint')"
+                  >
+                    {{ t('timeline.header.sectionViewOperators') }}
+                  </h5>
+                  <div v-if="hasOperatorTracks" class="header-more-checklist header-more-checklist--grid">
+                    <template v-for="(track, index) in store.teamTracksInfo" :key="index">
+                      <button
+                        v-if="track.id"
+                        type="button"
+                        class="header-more-check-row header-more-check-row--compact"
+                        :title="t('timeline.header.viewOperatorsHint')"
+                        @click="store.toggleOperatorEffectsVisible(index)"
+                      >
+                        <svg
+                          viewBox="0 0 16 16"
+                          width="12"
+                          height="12"
+                          fill="none"
+                          :stroke="store.getCharacterElementColor(track.id)"
+                          stroke-width="1.5"
+                          aria-hidden="true"
+                        >
+                          <rect x="1" y="1" width="14" height="14" rx="2" />
+                          <polyline
+                            v-if="store.operatorEffectsVisible[index]"
+                            points="3,8 6.5,11.5 13,4.5"
+                            stroke-width="2"
+                          />
+                        </svg>
+                        <span>{{ track.name }}</span>
+                      </button>
+                    </template>
+                  </div>
+                  <p v-else class="header-more-empty">{{ t('timeline.header.hideEffectsEmpty') }}</p>
+                </div>
               </section>
 
               <section class="header-more-section">
@@ -2695,11 +2740,16 @@ onUnmounted(() => {
   letter-spacing: 0.5px;
   color: rgba(255, 215, 0, 0.9);
 }
-.header-more-section__hint {
+.header-more-view-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.header-more-subsection__title {
   margin: 0;
   font-size: 11px;
-  line-height: 1.35;
-  color: rgba(255, 255, 255, 0.45);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.62);
 }
 .header-more-checklist {
   display: flex;
@@ -2710,6 +2760,18 @@ onUnmounted(() => {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.02);
+}
+.header-more-checklist--grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  max-height: none;
+  overflow: visible;
+}
+.header-more-checklist--grid .header-more-check-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.header-more-checklist--grid .header-more-check-row:nth-child(odd) {
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
 }
 .header-more-check-row {
   display: flex;
@@ -2730,6 +2792,18 @@ onUnmounted(() => {
   transition:
     background-color 0.2s ease,
     color 0.2s ease;
+}
+.header-more-check-row--compact {
+  gap: 5px;
+  padding: 5px 7px;
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 0;
+}
+.header-more-check-row--compact span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .header-more-check-row:last-child {
   border-bottom: none;

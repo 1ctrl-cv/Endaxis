@@ -351,11 +351,18 @@ function getTrackBuffContentPaddingNeeds(index) {
     return { topNeed: 0, bottomNeed: 0 };
   }
 
+  const showUpper = store.isTimelineViewLayerVisible('upperEffects');
+  const showLower = store.isTimelineViewLayerVisible('lowerBuffs');
+
   const operatorLayout = store.operatorEffectLayouts.get(track.id);
-  const upperNeed = Math.max(0, Number(operatorLayout?.groupHeights?.[0]) || 0);
+  const upperNeed = showUpper
+    ? Math.max(0, Number(operatorLayout?.groupHeights?.[0]) || 0)
+    : 0;
 
   const actionBuffLayout = store.trackBuffLayouts.get(track.id);
-  const lowerLaneCount = Math.max(0, Number(actionBuffLayout?.lowerLaneCount) || 0);
+  const lowerLaneCount = showLower
+    ? Math.max(0, Number(actionBuffLayout?.lowerLaneCount) || 0)
+    : 0;
   const lowerNeed =
     lowerLaneCount > 0 ? lowerLaneCount * EQUIPMENT_BUFF_LANE_PITCH : 0;
 
@@ -4451,7 +4458,7 @@ defineExpose({
             @click="onTrackPlacePointer(track, index, $event)"
           >
             <TimelineBuffLayer
-              v-if="track.id && store.isOperatorEffectsVisible(index)"
+              v-if="track.id && store.isTrackViewLayerVisible(index, 'upperEffects')"
               :track-id="track.id"
               placement="upper"
             />
@@ -4463,16 +4470,21 @@ defineExpose({
               :data-track-id="track.id"
             >
               <GaugeOverlay
-                v-if="track.id && store.isOperatorEffectsVisible(index)"
+                v-if="track.id && store.isTrackViewLayerVisible(index, 'gauge')"
                 :track-id="track.id"
               />
               <div class="actions-container">
                 <ActionItem
-                  v-memo="[action, store.isOperatorEffectsVisible(index)]"
+                  v-memo="[
+                    action,
+                    store.isTrackViewLayerVisible(index, 'skillDecorations'),
+                    store.isTrackViewLayerVisible(index, 'hitMarkers'),
+                  ]"
                   v-for="action in track.actions"
                   :key="action.instanceId"
                   :action="action"
-                  :show-decorations="store.isOperatorEffectsVisible(index)"
+                  :show-decorations="store.isTrackViewLayerVisible(index, 'skillDecorations')"
+                  :show-hit-markers="store.isTrackViewLayerVisible(index, 'hitMarkers')"
                   @hit-click="openHitDetail"
                   @mousedown="onActionMouseDown($event, track, action)"
                   @mousemove="
@@ -4490,10 +4502,13 @@ defineExpose({
                 />
               </div>
               <TimelineComboWindowBar
-                v-if="track.id && store.isOperatorEffectsVisible(index)"
+                v-if="track.id && store.isTrackViewLayerVisible(index, 'comboWindows')"
                 :track-id="track.id"
               />
-              <div v-if="store.isOperatorEffectsVisible(index)" class="switch-marker-layer">
+              <div
+                v-if="store.isTrackViewLayerVisible(index, 'switchMarkers')"
+                class="switch-marker-layer"
+              >
                 <div
                   v-for="sw in store.switchEvents.filter(s => s.characterId === track.id)"
                   :key="sw.id"
@@ -4514,7 +4529,7 @@ defineExpose({
               </div>
             </div>
             <TimelineBuffLayer
-              v-if="track.id && store.isOperatorEffectsVisible(index)"
+              v-if="track.id && store.isTrackViewLayerVisible(index, 'lowerBuffs')"
               :track-id="track.id"
               placement="lower"
             />

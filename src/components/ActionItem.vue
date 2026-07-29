@@ -9,6 +9,7 @@ import { getOperatorGameName } from '@/data/gameText';
 const props = defineProps({
   action: { type: Object, required: true },
   showDecorations: { type: Boolean, default: true },
+  showHitMarkers: { type: Boolean, default: true },
 });
 const emit = defineEmits(['hit-click']);
 
@@ -745,7 +746,7 @@ function handleActionDragStart(startPos, port) {
       </div>
     </template>
 
-    <div v-if="!isGhostMode" class="damage-ticks-layer">
+    <div v-if="!isGhostMode && showHitMarkers" class="damage-ticks-layer">
       <div
         v-for="(tick, idx) in renderableHits"
         :key="idx"
@@ -877,7 +878,7 @@ function handleActionDragStart(startPos, port) {
       :disabled="!isActionValidConnectionTarget"
       :canStart="connectionHandler.toolEnabled.value"
       :rect="store.nodeRects[action.instanceId]?.rect"
-      v-if="showPorts && showDecorations"
+      v-if="showPorts"
       :color="themeColor"
     />
   </div>

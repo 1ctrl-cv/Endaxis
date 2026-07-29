@@ -1103,7 +1103,66 @@ export const useTimelineStore = defineStore('timeline', () => {
 
   const showCursorGuide = ref(Boolean(toolbarPrefs.showCursorGuide));
   const OPERATOR_EFFECTS_VISIBLE_KEY = 'endaxis:operator-effects-visible:v1';
+  const TIMELINE_VIEW_LAYERS_KEY = 'endaxis:timeline-view-layers:v1';
+  const TIMELINE_VIEW_LAYER_IDS = [
+    'upperEffects',
+    'lowerBuffs',
+    'gauge',
+    'skillDecorations',
+    'hitMarkers',
+    'comboWindows',
+    'switchMarkers',
+    'effectLinks',
+  ] as const;
+  type TimelineViewLayerId = (typeof TIMELINE_VIEW_LAYER_IDS)[number];
+  type TimelineViewLayers = Record<TimelineViewLayerId, boolean>;
+
+  function createDefaultTimelineViewLayers(): TimelineViewLayers {
+    return {
+      upperEffects: true,
+      lowerBuffs: true,
+      gauge: true,
+      skillDecorations: true,
+      hitMarkers: true,
+      comboWindows: true,
+      switchMarkers: true,
+      effectLinks: true,
+    };
+  }
+
+  function normalizeTimelineViewLayers(source: unknown): TimelineViewLayers {
+    const defaults = createDefaultTimelineViewLayers();
+    if (!source || typeof source !== 'object') return defaults;
+    const input = source as Record<string, unknown>;
+    for (const id of TIMELINE_VIEW_LAYER_IDS) {
+      defaults[id] = input[id] !== false;
+    }
+    return defaults;
+  }
+
+  function loadTimelineViewLayers(): TimelineViewLayers {
+    try {
+      const raw = localStorage.getItem(TIMELINE_VIEW_LAYERS_KEY);
+      if (!raw) return createDefaultTimelineViewLayers();
+      return normalizeTimelineViewLayers(JSON.parse(raw));
+    } catch {
+      return createDefaultTimelineViewLayers();
+    }
+  }
+
+  function persistTimelineViewLayers() {
+    try {
+      localStorage.setItem(
+        TIMELINE_VIEW_LAYERS_KEY,
+        JSON.stringify(normalizeTimelineViewLayers(timelineViewLayers.value)),
+      );
+    } catch {
+      // ignore
+    }
+  }
+
   const operatorEffectsVisible = ref(loadOperatorEffectsVisible());
+  const timelineViewLayers = ref(loadTimelineViewLayers());
   const cursorPosition = ref({ x: 0, y: 0 });
   const snapStep = ref(normalizeToolbarSnapStep(toolbarPrefs.snapStep));
 
@@ -1189,6 +1248,23 @@ export const useTimelineStore = defineStore('timeline', () => {
   function isOperatorEffectsVisible(index: number) {
     ensureOperatorEffectsVisible();
     return operatorEffectsVisible.value[index] !== false;
+  }
+
+  function isTimelineViewLayerVisible(layer: TimelineViewLayerId) {
+    return timelineViewLayers.value[layer] !== false;
+  }
+
+  function isTrackViewLayerVisible(trackIndex: number, layer: TimelineViewLayerId) {
+    return isOperatorEffectsVisible(trackIndex) && isTimelineViewLayerVisible(layer);
+  }
+
+  function toggleTimelineViewLayer(layer: TimelineViewLayerId) {
+    if (!TIMELINE_VIEW_LAYER_IDS.includes(layer)) return;
+    timelineViewLayers.value = {
+      ...timelineViewLayers.value,
+      [layer]: !isTimelineViewLayerVisible(layer),
+    };
+    persistTimelineViewLayers();
   }
 
   watch(
@@ -5894,6 +5970,10 @@ export const useTimelineStore = defineStore('timeline', () => {
     toggleCursorGuide,
     toggleOperatorEffectsVisible,
     isOperatorEffectsVisible,
+    TIMELINE_VIEW_LAYER_IDS,
+    toggleTimelineViewLayer,
+    isTimelineViewLayerVisible,
+    isTrackViewLayerVisible,
     toggleBoxSelectMode,
     setCursorPosition,
     toggleSnapStep,
