@@ -147,8 +147,11 @@
   },
   "locale": {
     "en": "English",
+    "enShort": "EN",
     "ru": "Русский",
-    "zhCN": "简体中文"
+    "ruShort": "RU",
+    "zhCN": "简体中文",
+    "zhCNShort": "中"
   },
   "timeline": {
     "activityBar": {
@@ -215,8 +218,13 @@
       "smallImageExported": "小图已导出：{filename}"
     },
     "header": {
-      "hideEffectsLabel": "隐藏效果",
+      "more": "更多",
+      "moreTooltip": "视图、项目与偏好",
+      "sectionView": "视图",
+      "sectionProject": "项目",
+      "sectionPrefs": "偏好",
       "hideEffectsTooltip": "按干员隐藏图标、连线和效果层",
+      "hideEffectsEmpty": "当前没有可配置的干员轨道",
       "shortcutsLabel": "快捷键",
       "shortcutsTooltip": "查看全部快捷键",
       "languageTooltip": "切换语言",

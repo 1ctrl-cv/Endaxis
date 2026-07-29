@@ -346,10 +346,6 @@ function closeBottomPanelFromResourceMonitor() {
   persistWorkbenchLayout();
 }
 
-function changeLocale(next) {
-  setLocale(next);
-}
-
 // === 方案管理逻辑 ===
 const editingScenarioId = ref(null);
 const renameInputRef = ref(null);
@@ -509,8 +505,31 @@ async function onFileSelected(event) {
 const isDragging = ref(false);
 const isInternalDrag = ref(false);
 let dragCounter = 0;
-const hideEffectsHovered = ref(false);
+const moreMenuOpen = ref(false);
 const shortcutsDialogVisible = ref(false);
+
+const hasOperatorTracks = computed(() => store.teamTracksInfo.some(track => track.id));
+
+function closeMoreMenu() {
+  moreMenuOpen.value = false;
+}
+
+function openShortcutsFromMore() {
+  closeMoreMenu();
+  shortcutsDialogVisible.value = true;
+}
+
+function runMoreProjectAction(action) {
+  closeMoreMenu();
+  if (action === 'load') triggerImport();
+  else if (action === 'receive') openImportShareDialog();
+  else if (action === 'reset') handleReset();
+}
+
+function selectLocaleFromMore(next) {
+  if (locale.value === next) return;
+  setLocale(next);
+}
 
 const shortcutHelpSections = computed(() => {
   locale.value;
@@ -1592,84 +1611,6 @@ onUnmounted(() => {
           />
 
           <button
-            class="ea-btn ea-btn--sm ea-btn--lift shortcuts-help-btn"
-            type="button"
-            :title="t('timeline.header.shortcutsTooltip')"
-            @click="shortcutsDialogVisible = true"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              width="14"
-              height="14"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <rect x="2" y="6" width="20" height="12" rx="2" />
-              <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8" />
-            </svg>
-            {{ t('timeline.header.shortcutsLabel') }}
-          </button>
-
-          <div
-            class="hide-effects-group"
-            @mouseenter="hideEffectsHovered = true"
-            @mouseleave="hideEffectsHovered = false"
-          >
-            <button
-              class="ea-btn ea-btn--sm ea-btn--lift hide-effects-btn"
-              type="button"
-              :title="t('timeline.header.hideEffectsTooltip')"
-              :disabled="!store.teamTracksInfo.some(track => track.id)"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                width="14"
-                height="14"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-              {{ t('timeline.header.hideEffectsLabel') }}
-            </button>
-
-            <div v-show="hideEffectsHovered" class="hide-effects-dropdown">
-              <template v-for="(track, index) in store.teamTracksInfo" :key="index">
-                <div
-                  v-if="track.id"
-                  class="hide-effects-row"
-                  @click="store.toggleOperatorEffectsVisible(index)"
-                >
-                  <svg
-                    viewBox="0 0 16 16"
-                    width="14"
-                    height="14"
-                    fill="none"
-                    :stroke="store.getCharacterElementColor(track.id)"
-                    stroke-width="1.5"
-                  >
-                    <rect x="1" y="1" width="14" height="14" rx="2" />
-                    <polyline
-                      v-if="store.operatorEffectsVisible[index]"
-                      points="3,8 6.5,11.5 13,4.5"
-                      stroke-width="2"
-                    />
-                  </svg>
-                  <span class="hide-effects-name">{{ track.name }}</span>
-                </div>
-              </template>
-            </div>
-          </div>
-
-          <button
             class="ea-btn ea-btn--sm ea-btn--lift ea-btn--hover-green"
             type="button"
             :title="t('timeline.analysis.tooltip')"
@@ -1684,6 +1625,7 @@ onUnmounted(() => {
               stroke-width="2"
               stroke-linecap="round"
               stroke-linejoin="round"
+              aria-hidden="true"
             >
               <path d="M21 12a9 9 0 1 1-9-9v9z"></path>
               <path d="M12 3a9 9 0 0 1 9 9h-9z"></path>
@@ -1691,75 +1633,11 @@ onUnmounted(() => {
             {{ t('timeline.analysis.button') }}
           </button>
 
-          <el-dropdown @command="changeLocale" trigger="click" placement="bottom-end">
-            <button
-              class="ea-btn ea-btn--sm ea-btn--lift ea-btn--hover-info"
-              type="button"
-              :title="t('timeline.header.languageTooltip')"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                width="14"
-                height="14"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M2 12h20"></path>
-                <path d="M12 2a15 15 0 0 1 0 20"></path>
-                <path d="M12 2a15 15 0 0 0 0 20"></path>
-              </svg>
-              {{ t('common.language') }}
-            </button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="zh-CN" :disabled="locale === 'zh-CN'">{{
-                  t('locale.zhCN')
-                }}</el-dropdown-item>
-                <el-dropdown-item command="en" :disabled="locale === 'en'">{{
-                  t('locale.en')
-                }}</el-dropdown-item>
-                <el-dropdown-item command="ru" :disabled="locale === 'ru'">{{
-                  t('locale.ru')
-                }}</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-
-          <div class="divider-vertical"></div>
-
-          <button
-            class="ea-btn ea-btn--sm ea-btn--lift ea-btn--hover-danger-dark"
-            @click="handleReset"
-            :title="t('timeline.header.resetTooltip')"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              width="14"
-              height="14"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path
-                d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-              ></path>
-            </svg>
-            {{ t('common.reset') }}
-          </button>
-
-          <div class="divider-vertical"></div>
-
           <button
             class="ea-btn ea-btn--sm ea-btn--lift ea-btn--hover-orange"
-            @click="openExportDialog"
+            type="button"
             :title="t('common.export')"
+            @click="openExportDialog"
           >
             <svg
               viewBox="0 0 24 24"
@@ -1770,6 +1648,7 @@ onUnmounted(() => {
               stroke-width="2"
               stroke-linecap="round"
               stroke-linejoin="round"
+              aria-hidden="true"
             >
               <path d="M14 3h7v7"></path>
               <path d="M10 14L21 3"></path>
@@ -1778,50 +1657,212 @@ onUnmounted(() => {
             {{ t('common.export') }}
           </button>
 
-          <div class="project-btn-group">
-            <button
-              class="ea-btn ea-btn--sm ea-btn--lift ea-btn--hover-blue group-item"
-              @click="triggerImport"
-              :title="t('timeline.header.loadTooltip')"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                width="14"
-                height="14"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+          <el-popover
+            v-model:visible="moreMenuOpen"
+            placement="bottom-end"
+            :width="248"
+            trigger="click"
+            :show-arrow="false"
+            popper-class="header-more-popper"
+          >
+            <template #reference>
+              <button
+                class="ea-btn ea-btn--sm ea-btn--lift"
+                type="button"
+                :class="{ 'is-active': moreMenuOpen }"
+                :title="t('timeline.header.moreTooltip')"
+                :aria-expanded="moreMenuOpen"
+                :aria-label="t('timeline.header.more')"
               >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-              </svg>
-              {{ t('common.load') }}
-            </button>
+                <svg
+                  viewBox="0 0 24 24"
+                  width="14"
+                  height="14"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="5" r="1.6" />
+                  <circle cx="12" cy="12" r="1.6" />
+                  <circle cx="12" cy="19" r="1.6" />
+                </svg>
+                {{ t('timeline.header.more') }}
+              </button>
+            </template>
 
-            <button
-              class="ea-btn ea-btn--sm ea-btn--lift ea-btn--hover-blue group-item"
-              @click="openImportShareDialog"
-              :title="t('timeline.header.receiveTooltip')"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                width="14"
-                height="14"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <polyline points="9 11 12 14 22 4"></polyline>
-                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-              </svg>
-              {{ t('common.receive') }}
-            </button>
-          </div>
+            <div class="header-more-panel">
+              <section class="header-more-section">
+                <h4 class="header-more-section__title">{{ t('timeline.header.sectionView') }}</h4>
+                <p class="header-more-section__hint">{{ t('timeline.header.hideEffectsTooltip') }}</p>
+                <div v-if="hasOperatorTracks" class="header-more-checklist">
+                  <template v-for="(track, index) in store.teamTracksInfo" :key="index">
+                    <button
+                      v-if="track.id"
+                      type="button"
+                      class="header-more-check-row"
+                      @click="store.toggleOperatorEffectsVisible(index)"
+                    >
+                      <svg
+                        viewBox="0 0 16 16"
+                        width="14"
+                        height="14"
+                        fill="none"
+                        :stroke="store.getCharacterElementColor(track.id)"
+                        stroke-width="1.5"
+                        aria-hidden="true"
+                      >
+                        <rect x="1" y="1" width="14" height="14" rx="2" />
+                        <polyline
+                          v-if="store.operatorEffectsVisible[index]"
+                          points="3,8 6.5,11.5 13,4.5"
+                          stroke-width="2"
+                        />
+                      </svg>
+                      <span>{{ track.name }}</span>
+                    </button>
+                  </template>
+                </div>
+                <p v-else class="header-more-empty">{{ t('timeline.header.hideEffectsEmpty') }}</p>
+              </section>
+
+              <section class="header-more-section">
+                <h4 class="header-more-section__title">
+                  {{ t('timeline.header.sectionProject') }}
+                </h4>
+                <div class="header-more-actions">
+                  <button
+                    type="button"
+                    class="ea-btn ea-btn--sm ea-btn--lift ea-btn--hover-blue header-more-action"
+                    :title="t('timeline.header.loadTooltip')"
+                    @click="runMoreProjectAction('load')"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="14"
+                      height="14"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    <span>{{ t('common.load') }}</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="ea-btn ea-btn--sm ea-btn--lift ea-btn--hover-blue header-more-action"
+                    :title="t('timeline.header.receiveTooltip')"
+                    @click="runMoreProjectAction('receive')"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="14"
+                      height="14"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <polyline points="9 11 12 14 22 4" />
+                      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                    </svg>
+                    <span>{{ t('common.receive') }}</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="ea-btn ea-btn--sm ea-btn--lift ea-btn--hover-danger-dark header-more-action"
+                    :title="t('timeline.header.resetTooltip')"
+                    @click="runMoreProjectAction('reset')"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="14"
+                      height="14"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <polyline points="3 6 5 6 21 6" />
+                      <path
+                        d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                      />
+                    </svg>
+                    <span>{{ t('common.reset') }}</span>
+                  </button>
+                </div>
+              </section>
+
+              <section class="header-more-section">
+                <h4 class="header-more-section__title">{{ t('timeline.header.sectionPrefs') }}</h4>
+                <div class="header-more-pref-row">
+                  <div class="header-more-locale" :title="t('timeline.header.languageTooltip')">
+                    <button
+                      type="button"
+                      class="ea-btn ea-btn--sm ea-btn--lift ea-btn--hover-info header-more-locale__btn"
+                      :class="{ 'is-active': locale === 'zh-CN' }"
+                      :title="t('locale.zhCN')"
+                      @click="selectLocaleFromMore('zh-CN')"
+                    >
+                      {{ t('locale.zhCNShort') }}
+                    </button>
+                    <button
+                      type="button"
+                      class="ea-btn ea-btn--sm ea-btn--lift ea-btn--hover-info header-more-locale__btn"
+                      :class="{ 'is-active': locale === 'en' }"
+                      :title="t('locale.en')"
+                      @click="selectLocaleFromMore('en')"
+                    >
+                      {{ t('locale.enShort') }}
+                    </button>
+                    <button
+                      type="button"
+                      class="ea-btn ea-btn--sm ea-btn--lift ea-btn--hover-info header-more-locale__btn"
+                      :class="{ 'is-active': locale === 'ru' }"
+                      :title="t('locale.ru')"
+                      @click="selectLocaleFromMore('ru')"
+                    >
+                      {{ t('locale.ruShort') }}
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    class="ea-btn ea-btn--sm ea-btn--lift header-more-action header-more-action--icon"
+                    :title="t('timeline.header.shortcutsTooltip')"
+                    :aria-label="t('timeline.header.shortcutsLabel')"
+                    @click="openShortcutsFromMore"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="14"
+                      height="14"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <rect x="2" y="6" width="20" height="12" rx="2" />
+                      <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8" />
+                    </svg>
+                  </button>
+                </div>
+              </section>
+            </div>
+          </el-popover>
         </div>
       </header>
 
@@ -2575,13 +2616,11 @@ onUnmounted(() => {
 .header-controls {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
-.shortcuts-help-btn {
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.header-controls .ea-btn.is-active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
 }
 .shortcuts-help {
   display: flex;
@@ -2633,62 +2672,149 @@ onUnmounted(() => {
   color: rgba(255, 255, 255, 0.72);
   line-height: 1.4;
 }
-.divider-vertical {
-  width: 1px;
-  height: 20px;
-  background-color: #555;
-  margin: 0 5px;
-}
-.hide-effects-group {
-  position: relative;
-}
-.hide-effects-group::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 100%;
-  height: 6px;
-  z-index: 39;
-}
-.hide-effects-btn {
-  white-space: nowrap;
+
+.header-more-panel {
   display: flex;
-  align-items: center;
-  gap: 5px;
+  flex-direction: column;
+  gap: 0;
 }
-.hide-effects-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  min-width: 160px;
-  margin-top: 4px;
-  padding: 4px 0;
-  background: #2a2a2a;
-  border: 1px solid #444;
+.header-more-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.header-more-section + .header-more-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+.header-more-section__title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: rgba(255, 215, 0, 0.9);
+}
+.header-more-section__hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.45);
+}
+.header-more-checklist {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: 168px;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 4px;
-  z-index: 40;
+  background: rgba(255, 255, 255, 0.02);
 }
-.hide-effects-row {
+.header-more-check-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 10px;
-  cursor: pointer;
-  white-space: nowrap;
-  user-select: none;
-  color: #ccc;
+  width: 100%;
+  margin: 0;
+  padding: 7px 9px;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.82);
   font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
-.hide-effects-row:hover {
-  background: #3a3a3a;
+.header-more-check-row:last-child {
+  border-bottom: none;
+}
+.header-more-check-row:hover {
+  background: rgba(255, 255, 255, 0.06);
   color: #fff;
 }
-.hide-effects-name {
-  flex: 1;
+.header-more-check-row svg {
+  flex-shrink: 0;
+}
+.header-more-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.header-more-action.ea-btn {
+  width: auto;
+  flex: 0 0 auto;
+  justify-content: flex-start;
+  --ea-btn-bg: rgba(255, 255, 255, 0.04);
+  --ea-btn-border: rgba(255, 255, 255, 0.14);
+  --ea-btn-color: #ccc;
+  --ea-btn-bg-hover: rgba(255, 255, 255, 0.08);
+  --ea-btn-border-hover: rgba(255, 255, 255, 0.28);
+  --ea-btn-color-hover: #fff;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.header-more-action.ea-btn.ea-btn--hover-blue:hover {
+  --ea-btn-bg-hover: rgba(74, 144, 226, 0.14);
+  --ea-btn-border-hover: var(--ea-blue);
+  --ea-btn-color-hover: #9ec5f5;
+}
+.header-more-action.ea-btn.ea-btn--hover-danger-dark:hover {
+  --ea-btn-bg-hover: rgba(255, 77, 79, 0.12);
+  --ea-btn-border-hover: var(--ea-danger-soft);
+  --ea-btn-color-hover: var(--ea-danger-soft);
+}
+.header-more-empty {
+  margin: 0;
+  padding: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+}
+.header-more-pref-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.header-more-locale {
+  display: inline-grid;
+  grid-template-columns: repeat(3, 1.75rem);
+  gap: 4px;
+  flex: 0 0 auto;
+}
+.header-more-locale__btn.ea-btn {
+  width: 100%;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  --ea-btn-px: 0;
+  --ea-btn-py: 5px;
+  --ea-btn-font-size: 11px;
+  --ea-btn-bg: rgba(255, 255, 255, 0.04);
+  --ea-btn-border: rgba(255, 255, 255, 0.14);
+  --ea-btn-color: #ccc;
+  --ea-btn-bg-hover: rgba(0, 229, 255, 0.1);
+  --ea-btn-border-hover: rgba(0, 229, 255, 0.45);
+  --ea-btn-color-hover: #8ef3ff;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.header-more-locale__btn.ea-btn.is-active {
+  border-color: rgba(255, 215, 0, 0.5);
+  background: rgba(255, 215, 0, 0.1);
+  color: #ffe38a;
+}
+.header-more-action--icon.ea-btn {
+  flex: 0 0 auto;
+  width: 28px;
+  min-width: 28px;
+  padding-left: 0;
+  padding-right: 0;
+  --ea-btn-px: 0;
+  justify-content: center;
 }
 
 /* === 方案选择器样式 === */
@@ -2805,30 +2931,6 @@ onUnmounted(() => {
 .ts-add-btn {
   margin-left: 4px;
   font-size: 14px;
-}
-
-/* 按钮组容器 */
-.project-btn-group {
-  display: flex;
-  align-items: center;
-}
-.project-btn-group .group-item {
-  position: relative;
-  border-radius: 0;
-  margin-right: -1px;
-}
-.project-btn-group .group-item:first-child {
-  border-top-left-radius: 4px;
-  border-bottom-left-radius: 4px;
-}
-.project-btn-group .group-item:last-child {
-  border-top-right-radius: 4px;
-  border-bottom-right-radius: 4px;
-  margin-right: 0;
-}
-.project-btn-group .group-item:hover {
-  z-index: 2;
-  border-color: currentColor;
 }
 
 /* Workspace & Panels */
@@ -3007,5 +3109,18 @@ onUnmounted(() => {
   gap: 20px;
   font-size: 24px;
   font-weight: bold;
+}
+</style>
+
+<style>
+.header-more-popper.el-popover.el-popper {
+  padding: 12px;
+  background: #2a2a2e;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+.header-more-popper.el-popper.is-light,
+.header-more-popper.el-popper {
+  color: #ddd;
 }
 </style>
